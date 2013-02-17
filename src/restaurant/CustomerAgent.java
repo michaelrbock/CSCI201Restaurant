@@ -15,7 +15,7 @@ public class CustomerAgent extends Agent {
 	private String name;
 	private int hungerLevel = 5; // Determines length of meal
 	private RestaurantGui gui;
-
+	
 	// ** Agent connections **
 	private HostAgent host;
 	private WaiterAgent waiter;
@@ -309,7 +309,7 @@ public class CustomerAgent extends Agent {
 	public GuiCustomer getGuiCustomer() {
 		return guiCustomer;
 	}
-
+	
 	/** @return the string representation of the class */
 	public String toString() {
 		return "customer " + getName();

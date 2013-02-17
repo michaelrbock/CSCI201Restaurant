@@ -19,7 +19,7 @@ public class WaiterAgent extends Agent {
 
 	// State variables for Waiter
 	public enum BreakState {
-		none, wantBreak, mustWaitForBreak, canTake, onBreak
+		none, wantBreak, askedForBreak, mustWaitForBreak, canTake, onBreak
 	};
 	
 	private BreakState breakState; //default: none
@@ -313,6 +313,19 @@ public class WaiterAgent extends Agent {
 			DoMoveToOriginalPosition();// Animation thing
 			return true;
 		}
+		
+		//Break scenarios -- only do after dealing with customers
+		if (breakState == BreakState.wantBreak) {
+			askForBreak();
+			return true;
+		}
+		else if (breakState == BreakState.mustWaitForBreak) {
+			return false;
+		}
+		else if (breakState == BreakState.canTake) {
+			takeBreak();
+			return true;
+		}
 
 		// we have tried all our rules and found nothing to do.
 		// So return false to main loop of abstract agent and wait.
@@ -321,7 +334,7 @@ public class WaiterAgent extends Agent {
 	}
 
 	// *** ACTIONS ***
-
+	//
 	/**
 	 * Seats the customer at a specific table
 	 * 
@@ -398,6 +411,35 @@ public class WaiterAgent extends Agent {
 	private void clearTable(MyCustomer customer) {
 		DoClearingTable(customer);
 		customer.state = CustomerState.NO_ACTION;
+		stateChanged();
+	}
+	
+	/** Ask the host if can take break when want to */
+	private void askForBreak() {
+		host.msgCanITakeBreak(this);
+		breakState = BreakState.askedForBreak;
+		System.out.println(this+": asking host for break");
+		stateChanged();
+	}
+	
+	/** Go on break when allowed by host and no customer stuff to do */
+	private void takeBreak() {
+		host.msgGoingOnBreak(this);
+		breakState = BreakState.onBreak;
+		System.out.println(this+": going on break for 10000ms");
+		timer.schedule(new TimerTask() {
+			public void run() {
+				goOffBreak();
+			}
+		}, 10000);
+		stateChanged();
+	}
+	
+	/** Going off break after timer is fired */
+	private void goOffBreak() {
+		host.msgGoingOffBreak(this);
+		breakState = BreakState.none;
+		System.out.println(this+": going off break");
 		stateChanged();
 	}
 
