@@ -55,6 +55,7 @@ public class CookAgent extends Agent {
 		double cookTime;
 
 		// other things ...
+		int amount;
 
 		public FoodData(String type, double cookTime) {
 			this.type = type;

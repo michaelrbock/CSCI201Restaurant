@@ -9,6 +9,8 @@ import agent.Agent;
 
 public class CashierAgent extends Agent {
 	
+	// *** DATA ****
+	//
 	Menu menu = new Menu();
 	private List<Bill> customerBills = new ArrayList<Bill>();
 	private List<Bill> marketBills = new ArrayList<Bill>();
@@ -23,6 +25,7 @@ public class CashierAgent extends Agent {
 	}
 	
 	// *** MESSAGES ***
+	//
 	/** Message from Customer for payment */
 	public void msgPayment(CustomerAgent c, Bill b, double cash) {
 		//for bill in customerBills such that b=bill
@@ -49,17 +52,18 @@ public class CashierAgent extends Agent {
 	} //end msgPayment
 	
 	/** Message to accept bill from Market 
-	 *  Market has already set self as MarketAgent 
-	 */
-	public void msgBillFromMarket(MarketAgent m, Bill b) {
-		marketBills.add(new Bill(b.mkt, b));
+	 *  Market has already set self as MarketAgent */
+	public void msgBillFromMarket(MarketAgent m, double cost, String type) {
+		marketBills.add(new Bill(m, cost, type));
 		stateChanged();
 	}
 	
-	/** Message from waiter to get bill
-	 */
-	public void msgNeedBillForCustomer(CustomerAgent c, String order) {
-		//TODO: method stub
+	/** Message from waiter to get bill */
+	public void msgNeedBillForCustomer(WaiterAgent w, CustomerAgent c, String order) {
+		//create bill for customer
+		Bill newBill = new Bill(c, w, menu.choicesMap.get(order), order);
+		customerBills.add(newBill); //still must send back to waiter
+		stateChanged();
 	}
 	
 	/** Message from Customer if needs to work */
@@ -80,12 +84,64 @@ public class CashierAgent extends Agent {
 	}
 	
 	// *** SCHEDULER ***
+	//
 	@Override
 	protected boolean pickAndExecuteAnAction() {
-		// TODO Auto-generated method stub
+		//if there exists Bill b in customerBills such that b.status=unpaidAndNotSent
+		for (Bill b: customerBills) {
+			if (b.status == BillState.unpaidAndNotSent) {
+				sendBillToWaiter(b);
+				return true;
+			}
+		}
+		//if there exists Bill b in customerBills such that b.status=paidInFull
+		for (Bill b: customerBills) {
+			if (b.status == BillState.paidInFull) {
+				sendReceipt(b);
+				return true;
+			}
+		}
+		//if there exists Bill b in customerBills such that b.status=underPaid
+		for (Bill b: customerBills) {
+			if (b.status == BillState.underPaid) {
+				assignCustomerToWork(b);
+				return true;
+			}
+		}
+		//if there exists Bill b in marketBills such that b.status = unpaid
+		for (Bill b: marketBills) {
+			if (b.status == BillState.unpaidAndSent) {
+				payMarketBill(b);
+				return true;
+			}
+		}
+		
 		return false;
 	}
 	
 	// *** ACTIONS ***
+	//
+	/** */
+	private void sendBillToWaiter(Bill b) {
+		b.wtr.msgHereIsBill(b);
+		b.status = BillState.unpaidAndSent;
+	}
 	
+	/** */
+	private void sendReceipt(Bill b) {
+		b.cmr.msgThanks(b.change);
+		b.status = BillState.receiptGiven;
+	}
+	
+	/** */
+	private void assignCustomerToWork(Bill b) {
+		b.cmr.msgNotEnoughMoneyMustWorkFor(b.hoursNeeded);
+		b.status = BillState.receiptGiven;
+	}
+	
+	/** */
+	private void payMarketBill(Bill b) {
+		b.mkt.msgPayMarketBill(this, b.item, b.grandTotal);
+		b.status = BillState.paidInFull;
+	}
 }
