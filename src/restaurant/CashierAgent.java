@@ -14,14 +14,9 @@ public class CashierAgent extends Agent {
 	Menu menu = new Menu();
 	private List<Bill> customerBills = new ArrayList<Bill>();
 	private List<Bill> marketBills = new ArrayList<Bill>();
-	
-	//Name of Cashier
-	private String name;
 
-	public CashierAgent(String name) {
+	public CashierAgent() {
 		super();
-		
-		this.name = name;
 	}
 	
 	// *** MESSAGES ***
@@ -121,27 +116,40 @@ public class CashierAgent extends Agent {
 	
 	// *** ACTIONS ***
 	//
-	/** */
+	/** Send bill to waiter to give to customer */
 	private void sendBillToWaiter(Bill b) {
 		b.wtr.msgHereIsBill(b);
 		b.status = BillState.unpaidAndSent;
+		System.out.println(this+": sent bill to "+b.wtr+" for "+b.cmr);
 	}
 	
-	/** */
+	/** Send receipt (change) directly to customer after payment */
 	private void sendReceipt(Bill b) {
 		b.cmr.msgThanks(b.change);
 		b.status = BillState.receiptGiven;
+		System.out.println(this+": sent receipt to "+b.cmr);
 	}
 	
-	/** */
+	/** Assign hours to work to make up for underpaid bill */
 	private void assignCustomerToWork(Bill b) {
 		b.cmr.msgNotEnoughMoneyMustWorkFor(b.hoursNeeded);
 		b.status = BillState.receiptGiven;
+		System.out.println(this+": assigned "+b.cmr+" to "+b.hoursNeeded+" of work");
 	}
 	
-	/** */
+	/** Pay a market bill after cook orders food and market sends bill */
 	private void payMarketBill(Bill b) {
 		b.mkt.msgPayMarketBill(this, b.item, b.grandTotal);
 		b.status = BillState.paidInFull;
+		System.out.println(this+": paid $"+b.grandTotal+" bill to"+b.mkt+" for "+b.item);
+	}
+	
+	// *** EXTRA ***
+	public String getName() {
+		return "cashier";
+	}
+	
+	public String toString() {
+		return "cashier";
 	}
 }

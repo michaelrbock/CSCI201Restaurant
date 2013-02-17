@@ -66,6 +66,7 @@ public class CustomerAgent extends Agent {
 	}
 
 	// *** MESSAGES ***
+	//
 	/** Sent from GUI to set the customer as hungry */
 	public void setHungry() {
 		events.add(AgentEvent.gotHungry);
@@ -112,13 +113,25 @@ public class CustomerAgent extends Agent {
 		events.add(AgentEvent.foodDelivered);
 		stateChanged();
 	}
+	
+	/** Message from cashier with change (receipt) */
+	public void msgThanks(double change) {
+		//TODO: STUB -- figure out what to do after getting change (leave?)
+	}
+	
+	/** Message from cashier if under-paid -- must work for hours */
+	public void msgNotEnoughMoneyMustWorkFor(double hours) {
+		//TODO: STUB -- figure out what to do when need to work
+	}
 
 	/** Timer sends this when the customer has finished eating */
 	public void msgDoneEating() {
 		events.add(AgentEvent.doneEating);
 		stateChanged();
 	}
-
+	
+	// *** SCHEDULER ***
+	//
 	/** Scheduler. Determine what action is called for, and do it. */
 	protected boolean pickAndExecuteAnAction() {
 		if (events.isEmpty())

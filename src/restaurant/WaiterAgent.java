@@ -18,7 +18,11 @@ import java.util.*;
 public class WaiterAgent extends Agent {
 
 	// State variables for Waiter
-	private boolean onBreak = false;
+	public enum BreakState {
+		none, wantBreak, mustWaitForBreak, canTake, onBreak
+	};
+	
+	private BreakState breakState; //default: none
 
 	// State constants for Customers
 
@@ -37,7 +41,9 @@ public class WaiterAgent extends Agent {
 		public CustomerAgent cmr;
 		public String choice;
 		public int tableNum;
+		public Bill bill; // from cashier
 		public Food food; // gui thing
+		public boolean choiceIsOut; //default false
 
 		/**
 		 * Constructor for MyCustomer class.
@@ -51,11 +57,15 @@ public class WaiterAgent extends Agent {
 			this.cmr = cmr;
 			tableNum = num;
 			state = CustomerState.NO_ACTION;
+			choiceIsOut = false;
 		}
 	}
 
 	// Name of waiter
 	private String name;
+	
+	//Menu
+	private Menu menu;
 
 	// All the customers that this waiter is serving
 	private List<MyCustomer> customers = new ArrayList<MyCustomer>();
@@ -84,6 +94,7 @@ public class WaiterAgent extends Agent {
 		super();
 
 		this.name = name;
+		breakState = BreakState.none;
 
 		// initialize all the animation objects
 		this.aStar = aStar;
@@ -97,7 +108,7 @@ public class WaiterAgent extends Agent {
 	}
 
 	// *** MESSAGES ***
-
+	//
 	/**
 	 * Host sends this to give the waiter a new customer.
 	 * 
@@ -186,6 +197,43 @@ public class WaiterAgent extends Agent {
 			}
 		}
 	}
+	
+	/** Message from Cook that customer's choice is out */
+	public void msgOutOfChoice(String choice, int tableNum) {
+		//find customer and set state that his choice is out
+		for (MyCustomer myCustomer: customers) {
+			if (myCustomer.tableNum == tableNum) {
+				myCustomer.choiceIsOut = true; 
+				stateChanged();
+				break;
+			}
+		}
+	}
+	
+	/** Message sent from cashier with bill for customer */
+	public void msgHereIsBill(Bill b) {
+		//add bill to MyCustomer object for correct customer
+		for (MyCustomer myCustomer: customers) {
+			//find customer associated with bill
+			if (myCustomer.cmr == b.cmr) {
+				myCustomer.bill = b;
+				stateChanged();
+				return;
+			}
+		}
+	}
+	
+	/** Message sent from Host that waiter cannot take a break yet */
+	public void msgNotYet() {
+		breakState = BreakState.mustWaitForBreak;
+		stateChanged();
+	}
+	
+	/** Message from Host that waiter can now take a break */
+	public void msgTakeBreak() {
+		breakState = BreakState.canTake;
+		stateChanged();
+	}
 
 	/**
 	 * Sent from GUI to control breaks
@@ -194,15 +242,28 @@ public class WaiterAgent extends Agent {
 	 *            true when the waiter should go on break and false when the
 	 *            waiter should go off break Is the name onBreak right? What
 	 *            should it be?
+	 *            true sets breakState to want
 	 */
 	public void setBreakStatus(boolean state) {
-		onBreak = state;
+		if (state) {
+			breakState = BreakState.wantBreak;
+		}
+		else {
+			breakState = BreakState.none;
+		}
 		stateChanged();
 	}
-
+	
+	// *** SCHEDULER ***
+	//
 	/** Scheduler. Determine what action is called for, and do it. */
 	protected boolean pickAndExecuteAnAction() {
 		// print("in waiter scheduler");
+		
+		//Waiter on break does nothing
+		if (breakState == BreakState.onBreak) {
+			return false;
+		}
 
 		// Runs through the customers for each rule, so
 		// the waiter doesn't serve only one customer at a time
@@ -507,7 +568,12 @@ public class WaiterAgent extends Agent {
 
 	/** @return true if the waiter is on break, false otherwise */
 	public boolean isOnBreak() {
-		return onBreak;
+		if (breakState == BreakState.onBreak) {
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 
 }

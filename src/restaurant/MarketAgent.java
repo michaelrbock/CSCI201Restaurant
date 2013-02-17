@@ -43,10 +43,13 @@ public class MarketAgent extends Agent {
 	//Map food type (string) to amount in stock
 	private Map<String, Integer> inventory = new HashMap<String, Integer>(4);
 	
+	//Market's name
 	private String name;
 	
 	//Constructor for MarketAgent
 	public MarketAgent(String n) {
+		super();
+		
 		name = n;
 		inventory.put("Steak",   15);
 		inventory.put("Chicken", 10);
@@ -115,18 +118,30 @@ public class MarketAgent extends Agent {
 	private void sendBill(Order o) {
 		o.csr.msgBillFromMarket(this, o.grandTotal, o.type);
 		o.status = OrderState.billed;
+		System.out.println(this+": sent bill to "+o.csr);
 	}
 	
 	/** Sends notice that order cannot be completed to cook */
-	private void declideOrder(Order o) {
+	private void declineOrder(Order o) {
 		//food delivery with 0 amount signifies declined order
-		o.cook.msgFoodDelivery(o.type, 0);
+		o.cook.msgFoodDelivery(this, o.type, 0);
 		o.status = OrderState.unfulfilled;
+		System.out.println(this+": declined order (out of inventory) for "+o.type+" to "+o.cook);
 	}
 	
 	/** Fulfill order to Cook */
 	private void sendOrder(Order o) {
-		o.cook.msgFoodDelivery(o.type, o.amount);
+		o.cook.msgFoodDelivery(this, o.type, o.amount);
 		o.status = OrderState.completed;
+		System.out.println(this+": sent order of "+o.amount+" "+o.type+"(s) to "+o.cook);
+	}
+	
+	// *** EXTRA ***
+	public String getName() {
+		return name;
+	}
+	
+	public String toString() {
+		return "market " + name;
 	}
 }
