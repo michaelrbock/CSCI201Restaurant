@@ -3,6 +3,7 @@ package restaurant;
 import restaurant.gui.RestaurantGui;
 import restaurant.layoutGUI.*;
 import agent.Agent;
+import restaurant.Bill.*;
 import java.util.*;
 import java.awt.Color;
 
@@ -130,6 +131,7 @@ public class CustomerAgent extends Agent {
 	
 	/** Message from cashier with change (receipt) */
 	public void msgThanks(double change) {
+		System.out.println(this+": got receipt with $"+change+" of change");
 		events.add(AgentEvent.gotReceipt);
 		stateChanged();
 	}
@@ -167,6 +169,7 @@ public class CustomerAgent extends Agent {
 	//
 	/** Scheduler. Determine what action is called for, and do it. */
 	protected boolean pickAndExecuteAnAction() {
+		//debug: print(" events: "+events.toString()); 
 		if (events.isEmpty())
 			return false;
 		AgentEvent event = events.remove(0); // pop first element
@@ -266,13 +269,13 @@ public class CustomerAgent extends Agent {
 	private void decideToWaitOrLeave() {
 		int choice = rand.nextInt(100);
 		choice = choice % 2;
-		//stay and wait
+		//leave
 		if (choice == 0) {
 			host.msgThatIsTooLongIAmLeaving(this);
 			state = AgentState.WaitingInRestaurant;
-			stateChanged();
+			System.out.println(this+": I will wait");
 		}
-		//leave
+		//stay and wait
 		else if (choice == 1) {
 			host.msgIWillWait(this);
 			isHungry = false;
@@ -280,8 +283,16 @@ public class CustomerAgent extends Agent {
 			hoursToWork = 0;
 			cash = (double)rand.nextInt(30);
 			state = AgentState.DoingNothing;
-			stateChanged();
+			System.out.println(this+": I will not wait");
+			
+			//gui
+			guiCustomer.leave(); // for the animation
+			gui.setCustomerEnabled(this); // Message to gui to enable hunger button
+			// hack to keep customer getting hungry. Only for non-gui customers
+			if (gui == null)
+				becomeHungryInAWhile();// set a timer to make us hungry
 		}
+		stateChanged();
 	}
 
 	/** Starts a timer to simulate the customer thinking about the menu */
@@ -347,12 +358,13 @@ public class CustomerAgent extends Agent {
 	
 	/** To pay the bill */
 	private void payBill() {
-		cashier.msgPayment(this, bill, cash);
 		System.out.println(this+": payed the cashier $"+cash);
+		cashier.msgPayment(this, bill, cash);
 	}
 	
 	/** To work when underpaid */
 	private void work() {
+		state = AgentState.Working;
 		cashier.msgWillWorkFor(this, bill, hoursToWork);
 		System.out.println(this+": washing dishes for "+(hoursToWork*1000)+"ms");
 		timer.schedule( new TimerTask() {
@@ -360,6 +372,7 @@ public class CustomerAgent extends Agent {
 				doneWorking();
 			}
 		}, (long)(hoursToWork*1000) );// how long to wait before running task
+		//stateChanged();
 	}
 	
 	/** When done working */

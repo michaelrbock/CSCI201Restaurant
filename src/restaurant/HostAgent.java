@@ -55,14 +55,24 @@ public class HostAgent extends Agent {
 		}
 	}
 	
+	private class MyCustomer {
+		public CustomerAgent cmr;
+		public boolean knowsAboutWait;
+		
+		public MyCustomer(CustomerAgent c) {
+			this.cmr = c;
+			knowsAboutWait = false;
+		}
+	}
+	
 	//waiter is working in all states except onBreak
 	public enum WaiterBreakState {
 		none, wantsBreak, needsToWait, toldOkToBreak, onBreak
 	};
-
+	
 	// List of all the customers that need a table
-	private List<CustomerAgent> waitList = Collections
-			.synchronizedList(new ArrayList<CustomerAgent>());
+	private List<MyCustomer> waitList = Collections
+			.synchronizedList(new ArrayList<MyCustomer>());
 
 	// List of all waiter that exist.
 	private List<MyWaiter> waiters = Collections
@@ -102,7 +112,7 @@ public class HostAgent extends Agent {
 	 *            customer that wants to be added
 	 */
 	public void msgIWantToEat(CustomerAgent customer) {
-		waitList.add(customer);
+		waitList.add(new MyCustomer(customer));
 		stateChanged();
 	}
 
@@ -153,12 +163,14 @@ public class HostAgent extends Agent {
 	/** Message from customer who does not want to wait if there is long wait */
 	public void msgThatIsTooLongIAmLeaving(CustomerAgent c) {
 		//do not sit this customer, remove him from wait list
-		for (CustomerAgent customerAgent: waitList) {
-			if (customerAgent == c) {
-				waitList.remove(c);
-				stateChanged();
+		synchronized(waitList) {
+			for (MyCustomer mc: waitList) {
+				if (mc.cmr == c) {
+					waitList.remove(mc);
+				}
 			}
 		}
+		stateChanged();
 	}
 	
 	/** Message from customer who is willing to wait */
@@ -182,9 +194,9 @@ public class HostAgent extends Agent {
 					break;
 				}
 			}
-			//if all tables are occupied, tell customer about wait
+			//if all tables are occupied, tell customers about wait
 			if (allOccupied) {
-				tellCustomerThereIsWait(waitList.get(0));
+				tellCustomersThereIsWait();
 				return true;
 			}
 		}
@@ -254,16 +266,16 @@ public class HostAgent extends Agent {
 	 * table to sit them at.
 	 * 
 	 * @param waiter
-	 * @param customer
+	 * @param myCustomer
 	 * @param tableNum
 	 */
 	private void tellWaiterToSitCustomerAtTable(MyWaiter waiter,
-			CustomerAgent customer, int tableNum) {
-		print("Telling " + waiter.wtr + " to sit " + customer + " at table "
+			MyCustomer myCustomer, int tableNum) {
+		print("Telling " + waiter.wtr + " to sit " + myCustomer.cmr + " at table "
 				+ (tableNum + 1));
-		waiter.wtr.msgSitCustomerAtTable(customer, tableNum);
+		waiter.wtr.msgSitCustomerAtTable(myCustomer.cmr, tableNum);
 		tables[tableNum].occupied = true;
-		waitList.remove(customer);
+		waitList.remove(myCustomer);
 		nextWaiter = (nextWaiter + 1) % waiters.size();
 		stateChanged();
 	}
@@ -288,10 +300,16 @@ public class HostAgent extends Agent {
 	}
 	
 	/** Tell the customer that there is a wait (if there is) after customer approaches */
-	private void tellCustomerThereIsWait(CustomerAgent c) {
-		c.msgThereIsWait();
-		System.out.println(this+": told "+c+" that there is a wait");
-		//stateChanged();
+	private void tellCustomersThereIsWait() {
+		synchronized(waitList) {
+			for (MyCustomer mc: waitList) {
+				if (!mc.knowsAboutWait) {
+					System.out.println(this+": told "+mc.cmr+" that there is a wait");
+					mc.cmr.msgThereIsWait();
+				}
+			}
+		}
+		stateChanged();
 	}
 	
 	// *** EXTRA ***

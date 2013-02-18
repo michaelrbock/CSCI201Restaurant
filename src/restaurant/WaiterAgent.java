@@ -3,6 +3,7 @@ package restaurant;
 import java.awt.Color;
 import restaurant.gui.RestaurantGui;
 import restaurant.layoutGUI.*;
+import restaurant.Bill.*;
 import agent.Agent;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -28,7 +29,7 @@ public class WaiterAgent extends Agent {
 
 	public enum CustomerState {
 		NEED_SEATED, READY_TO_ORDER, ORDER_PENDING, ORDER_READY,
-		IS_DONE_EATING, IS_COMPLETELY_DONE, NO_ACTION
+		IS_DONE_EATING, HAS_BILL, IS_COMPLETELY_DONE, NO_ACTION
 	};
 
 	Timer timer = new Timer();
@@ -43,6 +44,7 @@ public class WaiterAgent extends Agent {
 		public String choice;
 		public int tableNum;
 		public Bill bill; // from cashier
+		public boolean askedForBill;
 		public Food food; // gui thing
 		public boolean choiceIsOut; //default false
 
@@ -59,6 +61,7 @@ public class WaiterAgent extends Agent {
 			tableNum = num;
 			state = CustomerState.NO_ACTION;
 			choiceIsOut = false;
+			askedForBill = false;
 		}
 	}
 
@@ -313,6 +316,12 @@ public class WaiterAgent extends Agent {
 					sendBillToCustomer(c);
 					return true;
 				}
+				else if (c.state == CustomerState.IS_DONE_EATING) {
+					if (!c.askedForBill) {
+						getBillFromCashierFor(c);
+						return true;
+					}
+				}
 			}
 
 			// Gives all pending orders to the cook
@@ -441,11 +450,18 @@ public class WaiterAgent extends Agent {
 		stateChanged();
 	}
 	
+	/** Get bill for customer from cashier */
+	private void getBillFromCashierFor(MyCustomer c) {
+		System.out.println(this+": asked cashier for bill for "+c.cmr);
+		cashier.msgNeedBillForCustomer(this, c.cmr, c.choice);
+		c.askedForBill = true;
+	}
+	
 	/** Sends bill to finished customer */
 	private void sendBillToCustomer(MyCustomer c) {
-		c.cmr.msgHereIsBill(c.bill);
-		//c.state = CustomerState.IS_COMPLETELY_DONE;
 		System.out.println(this+": sent bill to "+c.cmr);
+		c.cmr.msgHereIsBill(c.bill);
+		c.state = CustomerState.HAS_BILL;
 		stateChanged();
 	}
 	
