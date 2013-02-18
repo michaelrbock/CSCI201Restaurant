@@ -27,7 +27,8 @@ public class WaiterAgent extends Agent {
 	// State constants for Customers
 
 	public enum CustomerState {
-		NEED_SEATED, READY_TO_ORDER, ORDER_PENDING, ORDER_READY, IS_DONE, NO_ACTION
+		NEED_SEATED, READY_TO_ORDER, ORDER_PENDING, ORDER_READY,
+		IS_DONE_EATING, IS_COMPLETELY_DONE, NO_ACTION
 	};
 
 	Timer timer = new Timer();
@@ -72,6 +73,7 @@ public class WaiterAgent extends Agent {
 
 	private HostAgent host;
 	private CookAgent cook;
+	private CashierAgent cashier;
 
 	// Animation Variables
 	AStarTraversal aStar;
@@ -188,10 +190,20 @@ public class WaiterAgent extends Agent {
 	 * @param customer
 	 *            customer who is leaving the restaurant.
 	 */
+	public void msgDoneEating(CustomerAgent customer) {
+		for (MyCustomer c : customers) {
+			if (c.cmr.equals(customer)) {
+				c.state = CustomerState.IS_DONE_EATING;
+				stateChanged();
+				return;
+			}
+		}
+	}
+	
 	public void msgDoneEatingAndLeaving(CustomerAgent customer) {
 		for (MyCustomer c : customers) {
 			if (c.cmr.equals(customer)) {
-				c.state = CustomerState.IS_DONE;
+				c.state = CustomerState.IS_COMPLETELY_DONE;
 				stateChanged();
 				return;
 			}
@@ -203,7 +215,7 @@ public class WaiterAgent extends Agent {
 		//find customer and set state that his choice is out
 		for (MyCustomer myCustomer: customers) {
 			if (myCustomer.tableNum == tableNum) {
-				myCustomer.choiceIsOut = true; 
+				myCustomer.choiceIsOut = true;
 				stateChanged();
 				break;
 			}
@@ -276,9 +288,10 @@ public class WaiterAgent extends Agent {
 					return true;
 				}
 			}
+			
 			// Clears the table if the customer has left
 			for (MyCustomer c : customers) {
-				if (c.state == CustomerState.IS_DONE) {
+				if (c.state == CustomerState.IS_COMPLETELY_DONE) {
 					clearTable(c);
 					return true;
 				}
@@ -288,6 +301,16 @@ public class WaiterAgent extends Agent {
 			for (MyCustomer c : customers) {
 				if (c.state == CustomerState.NEED_SEATED) {
 					seatCustomer(c);
+					return true;
+				}
+			}
+			
+			// Gives customer bill if done and need it
+			for (MyCustomer c: customers) {
+				if (c.state == CustomerState.IS_DONE_EATING && 
+				    c.bill != null) 
+				{
+					sendBillToCustomer(c);
 					return true;
 				}
 			}
@@ -308,7 +331,11 @@ public class WaiterAgent extends Agent {
 					return true;
 				}
 			}
+			
+			//Gives bill to customers that are done eating!
 		}
+		
+		
 		if (!currentPosition.equals(originalPosition)) {
 			DoMoveToOriginalPosition();// Animation thing
 			return true;
@@ -411,6 +438,14 @@ public class WaiterAgent extends Agent {
 	private void clearTable(MyCustomer customer) {
 		DoClearingTable(customer);
 		customer.state = CustomerState.NO_ACTION;
+		stateChanged();
+	}
+	
+	/** Sends bill to finished customer */
+	private void sendBillToCustomer(MyCustomer c) {
+		c.cmr.msgHereIsBill(c.bill);
+		//c.state = CustomerState.IS_COMPLETELY_DONE;
+		System.out.println(this+": sent bill to "+c.cmr);
 		stateChanged();
 	}
 	
@@ -606,6 +641,11 @@ public class WaiterAgent extends Agent {
 	/** Hack to set the host for the waiter */
 	public void setHost(HostAgent host) {
 		this.host = host;
+	}
+	
+	/** Hack to set the cashier for the waiter */
+	public void setCashier(CashierAgent c) {
+		this.cashier = c;
 	}
 
 	/** @return true if the waiter is on break, false otherwise */

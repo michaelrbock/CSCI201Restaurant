@@ -19,25 +19,39 @@ public class CustomerAgent extends Agent {
 	// ** Agent connections **
 	private HostAgent host;
 	private WaiterAgent waiter;
+	private CashierAgent cashier;
 	Restaurant restaurant;
 	private Menu menu;
+	// ** utilities **
 	Timer timer = new Timer();
+	Random rand = new Random();
 	GuiCustomer guiCustomer; // for gui
 	// ** Agent state **
 	private boolean isHungry = false; // hack for gui
 
 	public enum AgentState {
-		DoingNothing, WaitingInRestaurant, SeatedWithMenu, WaiterCalled, WaitingForFood, Eating
+		DoingNothing, WaitingInRestaurant, SeatedWithMenu, WaiterCalled,
+		WaitingForFood, Eating, Paying, Working
 	};
 
 	// {NO_ACTION,NEED_SEATED,NEED_DECIDE,NEED_ORDER,NEED_EAT,NEED_LEAVE};
 	private AgentState state = AgentState.DoingNothing;// The start state
 
 	public enum AgentEvent {
-		gotHungry, beingSeated, decidedChoice, waiterToTakeOrder, foodDelivered, doneEating
+		gotHungry, thereIsWait, beingSeated, decidedChoice, waiterToTakeOrder, foodDelivered, 
+		doneEating, gotBill, gotReceipt, mustWork, doneWorking
 	};
 
 	List<AgentEvent> events = new ArrayList<AgentEvent>();
+	
+	//customer begins with between 0 and 30 (exclusive) dollars in cash
+	private double cash = (double)rand.nextInt(30);
+	
+	//customer's bill
+	private Bill bill;
+	
+	//used only if needed because not enough cash
+	private double hoursToWork = 0.0;
 
 	/**
 	 * Constructor for CustomerAgent class
@@ -64,7 +78,7 @@ public class CustomerAgent extends Agent {
 		guiCustomer = new GuiCustomer(name.substring(0, 1),
 				new Color(0, 255, 0), restaurant);
 	}
-
+	
 	// *** MESSAGES ***
 	//
 	/** Sent from GUI to set the customer as hungry */
@@ -116,17 +130,36 @@ public class CustomerAgent extends Agent {
 	
 	/** Message from cashier with change (receipt) */
 	public void msgThanks(double change) {
-		//TODO: STUB -- figure out what to do after getting change (leave?)
+		events.add(AgentEvent.gotReceipt);
+		stateChanged();
 	}
 	
 	/** Message from cashier if under-paid -- must work for hours */
 	public void msgNotEnoughMoneyMustWorkFor(double hours) {
-		//TODO: STUB -- figure out what to do when need to work
+		//add working event and hours to work
+		hoursToWork = hours;
+		events.add(AgentEvent.mustWork);
+		stateChanged();
 	}
 
 	/** Timer sends this when the customer has finished eating */
 	public void msgDoneEating() {
 		events.add(AgentEvent.doneEating);
+		stateChanged();
+	}
+	
+	/** Message from Waiter with bill */
+	public void msgHereIsBill(Bill b) {
+		//add bill to internal data
+		bill = b;
+		events.add(AgentEvent.gotBill);
+		stateChanged();
+	}
+	
+	/** Message from host that there is a wait */
+	public void msgThereIsWait() {
+		//will decide to leave or stay in actions
+		events.add(AgentEvent.thereIsWait);
 		stateChanged();
 	}
 	
@@ -148,7 +181,11 @@ public class CustomerAgent extends Agent {
 			// elseif (event == xxx) {}
 		}
 		if (state == AgentState.WaitingInRestaurant) {
-			if (event == AgentEvent.beingSeated) {
+			if (event == AgentEvent.thereIsWait) {
+				decideToWaitOrLeave(); //changes states, deletes all events
+				return true;
+			}
+			else if (event == AgentEvent.beingSeated) {
 				makeMenuChoice();
 				state = AgentState.SeatedWithMenu;
 				return true;
@@ -169,7 +206,13 @@ public class CustomerAgent extends Agent {
 			}
 		}
 		if (state == AgentState.WaitingForFood) {
-			if (event == AgentEvent.foodDelivered) {
+			//if the cook is out of something, the waiter will send
+			//another msgWhatWouldYouLike which adds a waiterToTakeOrder event
+			if (event == AgentEvent.waiterToTakeOrder) {
+				orderFood(); //order again
+				return true;
+			}
+			else if (event == AgentEvent.foodDelivered) {
 				eatFood();
 				state = AgentState.Eating;
 				return true;
@@ -177,9 +220,29 @@ public class CustomerAgent extends Agent {
 		}
 		if (state == AgentState.Eating) {
 			if (event == AgentEvent.doneEating) {
-				leaveRestaurant();
-				state = AgentState.DoingNothing;
+				doneEating();
+				state = AgentState.Paying;
 				return true;
+			}
+		}
+		if (state == AgentState.Paying) {
+			if (event == AgentEvent.gotBill) {
+				payBill();
+				return true;
+			}
+			else if (event == AgentEvent.gotReceipt) {
+				leaveRestaurant();
+				return false;
+			}
+			else if (event == AgentEvent.mustWork) {
+				work();
+				return true;
+			}
+		}
+		if (state == AgentState.Working) {
+			if (event == AgentEvent.doneWorking) {
+				leaveRestaurant();
+				return false;
 			}
 		}
 
@@ -189,7 +252,7 @@ public class CustomerAgent extends Agent {
 	}
 
 	// *** ACTIONS ***
-
+	//
 	/** Goes to the restaurant when the customer becomes hungry */
 	private void goingToRestaurant() {
 		print("Going to restaurant");
@@ -197,6 +260,28 @@ public class CustomerAgent extends Agent {
 		host.msgIWantToEat(this);// send him our instance, so he can respond to
 									// us
 		stateChanged();
+	}
+	
+	/** Decides to wait or leave when there is a wait */
+	private void decideToWaitOrLeave() {
+		int choice = rand.nextInt(100);
+		choice = choice % 2;
+		//stay and wait
+		if (choice == 0) {
+			host.msgThatIsTooLongIAmLeaving(this);
+			state = AgentState.WaitingInRestaurant;
+			stateChanged();
+		}
+		//leave
+		else if (choice == 1) {
+			host.msgIWillWait(this);
+			isHungry = false;
+			bill = null;
+			hoursToWork = 0;
+			cash = (double)rand.nextInt(30);
+			state = AgentState.DoingNothing;
+			stateChanged();
+		}
 	}
 
 	/** Starts a timer to simulate the customer thinking about the menu */
@@ -234,6 +319,13 @@ public class CustomerAgent extends Agent {
 		}, getHungerLevel() * 1000);// how long to wait before running task
 		stateChanged();
 	}
+	
+	/** Tell waiter that customer is done eating */
+	private void doneEating() {
+		System.out.println(this+": told "+waiter+" I am done eating");
+		waiter.msgDoneEating(this);
+		stateChanged();
+	}
 
 	/** When the customer is done eating, he leaves the restaurant */
 	private void leaveRestaurant() {
@@ -241,12 +333,39 @@ public class CustomerAgent extends Agent {
 		guiCustomer.leave(); // for the animation
 		waiter.msgDoneEatingAndLeaving(this);
 		isHungry = false;
+		bill = null;
+		hoursToWork = 0;
+		cash = (double)rand.nextInt(30);
+		state = AgentState.DoingNothing;
 		stateChanged();
 		gui.setCustomerEnabled(this); // Message to gui to enable hunger button
 
 		// hack to keep customer getting hungry. Only for non-gui customers
 		if (gui == null)
 			becomeHungryInAWhile();// set a timer to make us hungry.
+	}
+	
+	/** To pay the bill */
+	private void payBill() {
+		cashier.msgPayment(this, bill, cash);
+		System.out.println(this+": payed the cashier $"+cash);
+	}
+	
+	/** To work when underpaid */
+	private void work() {
+		cashier.msgWillWorkFor(this, bill, hoursToWork);
+		System.out.println(this+": washing dishes for "+(hoursToWork*1000)+"ms");
+		timer.schedule( new TimerTask() {
+			public void run() {
+				doneWorking();
+			}
+		}, (long)(hoursToWork*1000) );// how long to wait before running task
+	}
+	
+	/** When done working */
+	private void doneWorking() {
+		events.add(AgentEvent.doneWorking);
+		stateChanged();
 	}
 
 	/**
@@ -271,6 +390,11 @@ public class CustomerAgent extends Agent {
 	 */
 	public void setHost(HostAgent host) {
 		this.host = host;
+	}
+	
+	/** Establish connection to cashier agent */
+	public void setCashier(CashierAgent c) {
+		this.cashier = c;
 	}
 
 	/**
