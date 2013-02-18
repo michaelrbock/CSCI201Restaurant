@@ -274,6 +274,7 @@ public class WaiterAgent extends Agent {
 	/** Scheduler. Determine what action is called for, and do it. */
 	protected boolean pickAndExecuteAnAction() {
 		// print("in waiter scheduler");
+		//debug: System.out.println("In waiter scheduler");
 		
 		//Waiter on break does nothing
 		if (breakState == BreakState.onBreak) {

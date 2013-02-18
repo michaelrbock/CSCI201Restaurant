@@ -13,7 +13,7 @@ public class Bill {
 	double hoursNeeded; //default = 0
 	
 	public enum BillState {
-		unpaidAndNotSent, unpaidAndSent, paidInFull, underPaid, receiptGiven
+		unpaidAndNotSent, unpaidAndSent, paidInFull, underPaid, receiptGiven, paidByWork
 	};
 	
 	//Constructor for a Customer's Bill

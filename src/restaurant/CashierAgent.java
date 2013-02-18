@@ -42,6 +42,7 @@ public class CashierAgent extends Agent {
 				break;
 			}
 		}
+		stateChanged();
 	} //end msgPayment
 	
 	/** Message to accept bill from Market 
@@ -69,7 +70,7 @@ public class CashierAgent extends Agent {
 				bill.item == b.item) 
 			{
 				bill.hoursNeeded = hours;
-				bill.status = BillState.paidInFull;
+				bill.status = BillState.paidByWork;
 				stateChanged();
 				break;
 			}
@@ -80,6 +81,8 @@ public class CashierAgent extends Agent {
 	//
 	@Override
 	protected boolean pickAndExecuteAnAction() {
+		//debug: System.out.println("In cashier scheduler");
+				
 		//if there exists Bill b in customerBills such that b.status=unpaidAndNotSent
 		for (Bill b: customerBills) {
 			if (b.status == BillState.unpaidAndNotSent) {
@@ -131,7 +134,7 @@ public class CashierAgent extends Agent {
 	/** Assign hours to work to make up for underpaid bill */
 	private void assignCustomerToWork(Bill b) {
 		System.out.println(this+": assigned "+b.cmr+" to "+b.hoursNeeded+" of work");
-		b.cmr.msgNotEnoughMoneyMustWorkFor(b.hoursNeeded);
+		b.cmr.msgNotEnoughMoneyMustWorkFor((double)Math.round(b.hoursNeeded * 100) / 100);
 		b.status = BillState.receiptGiven;
 	}
 	

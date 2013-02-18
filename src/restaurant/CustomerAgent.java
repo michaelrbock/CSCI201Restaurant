@@ -131,7 +131,7 @@ public class CustomerAgent extends Agent {
 	
 	/** Message from cashier with change (receipt) */
 	public void msgThanks(double change) {
-		System.out.println(this+": got receipt with $"+change+" of change");
+		System.out.println(this+": got receipt with $"+((double)Math.round(change * 100) / 100)+" of change");
 		events.add(AgentEvent.gotReceipt);
 		stateChanged();
 	}
@@ -170,6 +170,8 @@ public class CustomerAgent extends Agent {
 	/** Scheduler. Determine what action is called for, and do it. */
 	protected boolean pickAndExecuteAnAction() {
 		//debug: print(" events: "+events.toString()); 
+		//debug: System.out.println("In customer scheduler");
+				
 		if (events.isEmpty())
 			return false;
 		AgentEvent event = events.remove(0); // pop first element
@@ -177,8 +179,8 @@ public class CustomerAgent extends Agent {
 		// Simple finite state machine
 		if (state == AgentState.DoingNothing) {
 			if (event == AgentEvent.gotHungry) {
-				goingToRestaurant();
 				state = AgentState.WaitingInRestaurant;
+				goingToRestaurant();
 				return true;
 			}
 			// elseif (event == xxx) {}
@@ -235,7 +237,7 @@ public class CustomerAgent extends Agent {
 			}
 			else if (event == AgentEvent.gotReceipt) {
 				leaveRestaurant();
-				return false;
+				return true;
 			}
 			else if (event == AgentEvent.mustWork) {
 				work();
@@ -245,7 +247,7 @@ public class CustomerAgent extends Agent {
 		if (state == AgentState.Working) {
 			if (event == AgentEvent.doneWorking) {
 				leaveRestaurant();
-				return false;
+				return true;
 			}
 		}
 
@@ -259,6 +261,7 @@ public class CustomerAgent extends Agent {
 	/** Goes to the restaurant when the customer becomes hungry */
 	private void goingToRestaurant() {
 		print("Going to restaurant");
+		state = AgentState.WaitingInRestaurant;
 		guiCustomer.appearInWaitingQueue();
 		host.msgIWantToEat(this);// send him our instance, so he can respond to
 									// us

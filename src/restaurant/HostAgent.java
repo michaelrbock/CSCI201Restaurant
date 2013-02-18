@@ -163,12 +163,16 @@ public class HostAgent extends Agent {
 	/** Message from customer who does not want to wait if there is long wait */
 	public void msgThatIsTooLongIAmLeaving(CustomerAgent c) {
 		//do not sit this customer, remove him from wait list
+		MyCustomer temp = null;
 		synchronized(waitList) {
 			for (MyCustomer mc: waitList) {
 				if (mc.cmr == c) {
-					waitList.remove(mc);
+					temp = mc;
 				}
 			}
+		}
+		if (temp != null) {
+			waitList.remove(temp);
 		}
 		stateChanged();
 	}
@@ -183,6 +187,8 @@ public class HostAgent extends Agent {
 	//
 	/** Scheduler. Determine what action is called for, and do it. */
 	protected boolean pickAndExecuteAnAction() {
+		//debug: System.out.println("waitList: "+waitList.toString());
+		//debug: System.out.println("In host scheduler");
 		
 		//tell customer about wait if there is one
 		if (!waitList.isEmpty()) {
@@ -196,8 +202,20 @@ public class HostAgent extends Agent {
 			}
 			//if all tables are occupied, tell customers about wait
 			if (allOccupied) {
-				tellCustomersThereIsWait();
-				return true;
+				/** Tell the customer that there is a wait (if there is) after customer approaches */
+				MyCustomer temp = null;
+				synchronized(waitList) {
+					for (MyCustomer mc: waitList) {
+						if (!mc.knowsAboutWait) {
+							temp = mc;
+							break;
+						}
+					}
+				}
+				if (temp != null) {
+					tellCustomerThereIsWait(temp);
+					return true;
+				}
 			}
 		}
 
@@ -300,18 +318,15 @@ public class HostAgent extends Agent {
 	}
 	
 	/** Tell the customer that there is a wait (if there is) after customer approaches */
-	private void tellCustomersThereIsWait() {
-		synchronized(waitList) {
-			for (MyCustomer mc: waitList) {
-				if (!mc.knowsAboutWait) {
-					System.out.println(this+": told "+mc.cmr+" that there is a wait");
-					mc.cmr.msgThereIsWait();
-				}
-			}
+	private void tellCustomerThereIsWait(MyCustomer mc) {
+		if (!mc.knowsAboutWait) {
+			System.out.println(this+": told "+mc.cmr+" that there is a wait");
+			mc.cmr.msgThereIsWait();
+			mc.knowsAboutWait = true;
+			stateChanged();
 		}
-		stateChanged();
 	}
-	
+
 	// *** EXTRA ***
 	//
 	/**

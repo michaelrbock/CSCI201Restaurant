@@ -31,9 +31,12 @@ public class CookAgent extends Agent {
 	// Timer for simulation
 	Timer timer = new Timer();
 	Restaurant restaurant; // Gui layout
+	Random rand = new Random(); //utility
 	
 	//List of Markets to order from
 	private List<MyMarket> markets = new ArrayList<MyMarket>();
+	
+	private boolean marketOrderIsPlaced; //default false
 
 	/**
 	 * Constructor for CookAgent class
@@ -47,15 +50,16 @@ public class CookAgent extends Agent {
 		this.name = name;
 		this.restaurant = restaurant;
 		// Create the restaurant's inventory: name, cookTime, amount in inventory
-		inventory.put("Steak", new FoodData("Steak",     5, 10));
-		inventory.put("Chicken", new FoodData("Chicken", 4, 10));
-		inventory.put("Pizza", new FoodData("Pizza",     3, 10));
-		inventory.put("Salad", new FoodData("Salad",     2, 10));
+		inventory.put("Steak", new FoodData("Steak",     5, 0));
+		inventory.put("Chicken", new FoodData("Chicken", 4, 2));
+		inventory.put("Pizza", new FoodData("Pizza",     3, 2));
+		inventory.put("Salad", new FoodData("Salad",     2, 2));
 		
 		//Create 10 Markets to order from
 		for (int i=0; i<10; i++) {
 			markets.add(new MyMarket(new MarketAgent("m"+(i+1))));
 		}
+		marketOrderIsPlaced = false;
 	}
 
 	/**
@@ -63,11 +67,11 @@ public class CookAgent extends Agent {
 	 * its cooking time, and ...
 	 */
 	private class FoodData {
-		String type; // kind of food
-		double cookTime;
+		public String type; // kind of food
+		public double cookTime;
 
 		// other things ...
-		int amount;
+		public int amount;
 		
 		public FoodData(String type, double cookTime, int amount) {
 			this.type = type;
@@ -178,6 +182,7 @@ public class CookAgent extends Agent {
 		else {
 			inventory.get(foodType).addToInventory(amount);
 		}
+		marketOrderIsPlaced = false;
 		stateChanged();
 	}
 	
@@ -185,7 +190,16 @@ public class CookAgent extends Agent {
 	//
 	/** Scheduler. Determine what action is called for, and do it. */
 	protected boolean pickAndExecuteAnAction() {
-
+		//if there exists food in inventory such that the amount is 0, order more
+		for (FoodData foodData : inventory.values()) {
+			System.out.println(foodData.amount);
+			if (foodData.amount == 0 && !marketOrderIsPlaced) 
+			{
+				int randomNum = (rand.nextInt(5) + 1);
+				orderMoreFromMarket(foodData.type, randomNum); //order ten more
+				return true;
+			}
+		}
 		// If there exists an order o whose status is done, place o.
 		for (Order o : orders) {
 			if (o.status == OrderStatus.done) {
@@ -199,13 +213,6 @@ public class CookAgent extends Agent {
 				cookOrder(o);
 				return true;
 			}
-		}
-		//if there exists food in inventory such that the amount is 0, order more
-		for (FoodData foodData : inventory.values()) {
-		    if (foodData.amount == 0) {
-		    	orderMoreFromMarket(foodData.type, 10); //order ten more
-		    	return true;
-		    }
 		}
 
 		// we have tried all our rules (in this case only one) and found
@@ -238,16 +245,17 @@ public class CookAgent extends Agent {
 		for (MyMarket market: markets) {
 			//if market is not out of that type of food
 			if (market.inventoryStatus.get(foodType) != MarketInventoryStatus.out) {
-				market.mkt.msgOrderFood(foodType, amount, csr, this);
 				System.out.println(this+": ordered "+amount+" of "+foodType+" from "+market.mkt);
+				market.mkt.msgOrderFood(foodType, amount, csr, this);
+				marketOrderIsPlaced = true;
 				return;
 			}
 		}
 		//if there are no markets out...retry random to see if market has replenished
-		Random rand = new Random();
 		int randomNum = rand.nextInt(10);
-		markets.get(randomNum).mkt.msgOrderFood(foodType, amount, csr, this);
 		System.out.println(this+": ordered "+amount+" of "+foodType+" from random market");
+		markets.get(randomNum).mkt.msgOrderFood(foodType, amount, csr, this);
+		marketOrderIsPlaced = true;
 	}
 
 	// *** EXTRA -- all the simulation routines***
