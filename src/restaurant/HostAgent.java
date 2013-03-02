@@ -1,6 +1,7 @@
 package restaurant;
 
 import agent.Agent;
+import restaurant.interfaces.*;
 import java.util.*;
 
 /**

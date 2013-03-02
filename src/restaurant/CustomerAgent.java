@@ -1,6 +1,7 @@
 package restaurant;
 
 import restaurant.gui.RestaurantGui;
+import restaurant.interfaces.*;
 import restaurant.layoutGUI.*;
 import agent.Agent;
 import restaurant.Bill.*;
@@ -12,15 +13,15 @@ import java.awt.Color;
  * hungry. Randomly chooses a menu item and simulates eating when the food
  * arrives. Interacts with a waiter only
  */
-public class CustomerAgent extends Agent {
+public class CustomerAgent extends Agent implements Customer {
 	private String name;
 	private int hungerLevel = 5; // Determines length of meal
 	private RestaurantGui gui;
 	
 	// ** Agent connections **
 	private HostAgent host;
-	private WaiterAgent waiter;
-	private CashierAgent cashier;
+	private Waiter waiter;
+	private Cashier cashier;
 	Restaurant restaurant;
 	private Menu menu;
 	// ** utilities **
@@ -98,7 +99,7 @@ public class CustomerAgent extends Agent {
 	 * @param menu
 	 *            a reference to a menu
 	 */
-	public void msgFollowMeToTable(WaiterAgent waiter, Menu menu) {
+	public void msgFollowMeToTable(Waiter waiter, Menu menu) {
 		this.menu = menu;
 		this.waiter = waiter;
 		print("Received msgFollowMeToTable from" + waiter);
@@ -409,7 +410,7 @@ public class CustomerAgent extends Agent {
 	}
 	
 	/** Establish connection to cashier agent */
-	public void setCashier(CashierAgent c) {
+	public void setCashier(Cashier c) {
 		this.cashier = c;
 	}
 

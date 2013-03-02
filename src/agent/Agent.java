@@ -34,7 +34,7 @@ public abstract class Agent {
 
 	/** The simulated action code */
 	protected void Do(String msg) {
-	    print(msg, null);
+		print(msg, null);
 	}
 	/** Print message */
 	protected void print(String msg) {
@@ -88,13 +88,13 @@ public abstract class Agent {
 
 			while (goOn) {
 				try {
-				    // The agent sleeps here until someone calls, stateChanged(),
-				    // which causes a call to stateChange.give(), which wakes up agent.
+					// The agent sleeps here until someone calls, stateChanged(),
+					// which causes a call to stateChange.give(), which wakes up agent.
 					stateChange.acquire();
-						//The next while clause is the key to the control flow.
-						//When the agent wakes up it will call respondToStateChange()
-						//repeatedly until it returns FALSE.
-						//You will see that pickAndExecuteAnAction() is the agent scheduler.
+					//The next while clause is the key to the control flow.
+					//When the agent wakes up it will call respondToStateChange()
+					//repeatedly until it returns FALSE.
+					//You will see that pickAndExecuteAnAction() is the agent scheduler.
 					while (pickAndExecuteAnAction());
 				} catch (InterruptedException e) {
 					// no action - expected when stopping or when deadline changed

@@ -1,12 +1,14 @@
 package restaurant;
 
+import restaurant.interfaces.*;
+
 public class Bill {
 	
 	double grandTotal;
 	String item;
-	CustomerAgent cmr;
-	MarketAgent mkt;
-	WaiterAgent wtr;
+	Customer cmr;
+	Market mkt;
+	Waiter wtr;
 	double amountReceived;
 	double change;
 	BillState status; //default = unpaid
@@ -17,7 +19,7 @@ public class Bill {
 	};
 	
 	//Constructor for a Customer's Bill
-	public Bill(CustomerAgent c, WaiterAgent w, double price, String choice) {
+	public Bill(Customer c, Waiter w, double price, String choice) {
 		cmr = c;
 		wtr = w;
 		grandTotal = price;
@@ -28,7 +30,7 @@ public class Bill {
 	
 	//Constructor for a Bill to pay to Market
 	//Create new bill from bill
-	public Bill(MarketAgent m, double total, String it) {
+	public Bill(Market m, double total, String it) {
 		//this.
 		mkt = m;
 		grandTotal = total;

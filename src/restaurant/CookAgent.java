@@ -1,6 +1,7 @@
 package restaurant;
 
 import agent.Agent;
+import restaurant.interfaces.*;
 import java.util.*;
 
 import restaurant.WaiterAgent.CustomerState;
@@ -12,7 +13,7 @@ import java.awt.Color;
  * Cook agent for restaurant. Keeps a list of orders for waiters and simulates
  * cooking them. Interacts with waiters only.
  */
-public class CookAgent extends Agent {
+public class CookAgent extends Agent implements Cook {
 
 	// List of all the orders and inventory of food items
 	private List<Order> orders = new ArrayList<Order>();
@@ -26,7 +27,7 @@ public class CookAgent extends Agent {
 	private String name;
 	
 	//Agent Connections
-	private CashierAgent csr;
+	private Cashier csr;
 
 	// Timer for simulation
 	Timer timer = new Timer();
@@ -92,7 +93,7 @@ public class CookAgent extends Agent {
 	 * number, food item, cooktime and status.
 	 */
 	private class Order {
-		public WaiterAgent waiter;
+		public Waiter waiter;
 		public int tableNum;
 		public String choice;
 		public OrderStatus status;
@@ -108,7 +109,7 @@ public class CookAgent extends Agent {
 		 * @param choice
 		 *            type of food to be cooked
 		 */
-		public Order(WaiterAgent waiter, int tableNum, String choice) {
+		public Order(Waiter waiter, int tableNum, String choice) {
 			this.waiter = waiter;
 			this.choice = choice;
 			this.tableNum = tableNum;
@@ -126,12 +127,12 @@ public class CookAgent extends Agent {
 	 * to the MarketAgent, and his known inventory state for each food item
 	 */
 	private class MyMarket {
-		public MarketAgent mkt;
+		public Market mkt;
 		public Map<String,MarketInventoryStatus> inventoryStatus = 
 				new HashMap<String,MarketInventoryStatus>();
 
 		//Constructor for MyMarket
-		public MyMarket(MarketAgent m) {
+		public MyMarket(Market m) {
 			this.mkt = m;
 			
 			//start all markets with all unknown inventory status for each item
@@ -162,13 +163,13 @@ public class CookAgent extends Agent {
 	 * @param choice
 	 *            type of food to be cooked
 	 */
-	public void msgHereIsAnOrder(WaiterAgent waiter, int tableNum, String choice) {
+	public void msgHereIsAnOrder(Waiter waiter, int tableNum, String choice) {
 		orders.add(new Order(waiter, tableNum, choice));
 		stateChanged();
 	}
 	
 	/** Message from Market of food delivery */
-	public void msgFoodDelivery(MarketAgent m, String foodType, int amount) {
+	public void msgFoodDelivery(Market m, String foodType, int amount) {
 		//if order is empty (market is out of stock), change market status
 		if (amount == 0) {
 			for (MyMarket myMarket: markets) {
@@ -192,7 +193,7 @@ public class CookAgent extends Agent {
 	protected boolean pickAndExecuteAnAction() {
 		//if there exists food in inventory such that the amount is 0, order more
 		for (FoodData foodData : inventory.values()) {
-			System.out.println(foodData.amount);
+			//debug: System.out.println(foodData.amount);
 			if (foodData.amount == 0 && !marketOrderIsPlaced) 
 			{
 				int randomNum = (rand.nextInt(5) + 1);
@@ -270,12 +271,12 @@ public class CookAgent extends Agent {
 	}
 	
 	/** establish connection to cashier agent. */
-	public void setCashier(CashierAgent c) {
+	public void setCashier(Cashier c) {
 		this.csr = c;
 	}
 
 	private void DoCooking(final Order order) {
-		print("Cooking:" + order + " for table:" + (order.tableNum + 1));
+		print("Cooking: " + order + " for table:" + (order.tableNum + 1));
 		// put it on the grill. gui stuff
 		order.food = new Food(order.choice.substring(0, 2), new Color(0, 255,
 				255), restaurant);

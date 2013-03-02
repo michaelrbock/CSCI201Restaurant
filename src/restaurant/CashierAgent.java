@@ -3,9 +3,10 @@ package restaurant;
 import java.util.ArrayList;
 import java.util.List;
 import restaurant.Bill.*;
+import restaurant.interfaces.*;
 import agent.Agent;
 
-public class CashierAgent extends Agent {
+public class CashierAgent extends Agent implements Cashier {
 	
 	// *** DATA ****
 	//
@@ -20,7 +21,7 @@ public class CashierAgent extends Agent {
 	// *** MESSAGES ***
 	//
 	/** Message from Customer for payment */
-	public void msgPayment(CustomerAgent c, Bill b, double cash) {
+	public void msgPayment(Customer c, Bill b, double cash) {
 		//for bill in customerBills such that b=bill
 		for (Bill bill: customerBills) {
 			if (bill.grandTotal == b.grandTotal &&
@@ -47,13 +48,13 @@ public class CashierAgent extends Agent {
 	
 	/** Message to accept bill from Market 
 	 *  Market has already set self as MarketAgent */
-	public void msgBillFromMarket(MarketAgent m, double cost, String type) {
+	public void msgBillFromMarket(Market m, double cost, String type) {
 		marketBills.add(new Bill(m, cost, type));
 		stateChanged();
 	}
 	
 	/** Message from waiter to get bill */
-	public void msgNeedBillForCustomer(WaiterAgent w, CustomerAgent c, String order) {
+	public void msgNeedBillForCustomer(Waiter w, Customer c, String order) {
 		//create bill for customer
 		Bill newBill = new Bill(c, w, menu.choicesMap.get(order), order);
 		customerBills.add(newBill); //still must send back to waiter
@@ -61,7 +62,7 @@ public class CashierAgent extends Agent {
 	}
 	
 	/** Message from Customer if needs to work */
-	public void msgWillWorkFor(CustomerAgent c, Bill b, double hours) {
+	public void msgWillWorkFor(Customer c, Bill b, double hours) {
 		//find waiter's bill and update info
 		//for bill in customerBills such that b=bill
 		for (Bill bill: customerBills) {

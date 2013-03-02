@@ -1,6 +1,7 @@
 package restaurant;
 
 import java.awt.Color;
+import restaurant.interfaces.*;
 import restaurant.gui.RestaurantGui;
 import restaurant.layoutGUI.*;
 import restaurant.Bill.*;
@@ -16,7 +17,7 @@ import java.util.*;
  * done. Cleans up the tables after the customers leave. Interacts with
  * customers, host, and cook
  */
-public class WaiterAgent extends Agent {
+public class WaiterAgent extends Agent implements Waiter {
 
 	// State variables for Waiter
 	public enum BreakState {
@@ -40,7 +41,7 @@ public class WaiterAgent extends Agent {
 	 */
 	private class MyCustomer {
 		public CustomerState state;
-		public CustomerAgent cmr;
+		public Customer cmr;
 		public String choice;
 		public int tableNum;
 		public Bill bill; // from cashier
@@ -56,7 +57,7 @@ public class WaiterAgent extends Agent {
 		 * @param num
 		 *            assigned table number
 		 */
-		public MyCustomer(CustomerAgent cmr, int num) {
+		public MyCustomer(Customer cmr, int num) {
 			this.cmr = cmr;
 			tableNum = num;
 			state = CustomerState.NO_ACTION;
@@ -75,8 +76,8 @@ public class WaiterAgent extends Agent {
 	private List<MyCustomer> customers = new ArrayList<MyCustomer>();
 
 	private HostAgent host;
-	private CookAgent cook;
-	private CashierAgent cashier;
+	private Cook cook;
+	private Cashier cashier;
 
 	// Animation Variables
 	AStarTraversal aStar;
@@ -122,7 +123,7 @@ public class WaiterAgent extends Agent {
 	 * @param tableNum
 	 *            identification number for table
 	 */
-	public void msgSitCustomerAtTable(CustomerAgent customer, int tableNum) {
+	public void msgSitCustomerAtTable(Customer customer, int tableNum) {
 		MyCustomer c = new MyCustomer(customer, tableNum);
 		c.state = CustomerState.NEED_SEATED;
 		customers.add(c);
@@ -135,7 +136,7 @@ public class WaiterAgent extends Agent {
 	 * @param customer
 	 *            customer who is ready to order.
 	 */
-	public void msgImReadyToOrder(CustomerAgent customer) {
+	public void msgImReadyToOrder(Customer customer) {
 		// print("received msgImReadyToOrder from:"+customer);
 		for (int i = 0; i < customers.size(); i++) {
 			// if(customers.get(i).cmr.equals(customer)){
@@ -157,7 +158,7 @@ public class WaiterAgent extends Agent {
 	 * @param choice
 	 *            the food item that the customer chose
 	 */
-	public void msgHereIsMyChoice(CustomerAgent customer, String choice) {
+	public void msgHereIsMyChoice(Customer customer, String choice) {
 		for (MyCustomer c : customers) {
 			if (c.cmr.equals(customer)) {
 				c.choice = choice;
@@ -193,7 +194,7 @@ public class WaiterAgent extends Agent {
 	 * @param customer
 	 *            customer who is leaving the restaurant.
 	 */
-	public void msgDoneEating(CustomerAgent customer) {
+	public void msgDoneEating(Customer customer) {
 		for (MyCustomer c : customers) {
 			if (c.cmr.equals(customer)) {
 				c.state = CustomerState.IS_DONE_EATING;
@@ -203,7 +204,7 @@ public class WaiterAgent extends Agent {
 		}
 	}
 	
-	public void msgDoneEatingAndLeaving(CustomerAgent customer) {
+	public void msgDoneEatingAndLeaving(Customer customer) {
 		for (MyCustomer c : customers) {
 			if (c.cmr.equals(customer)) {
 				c.state = CustomerState.IS_COMPLETELY_DONE;
@@ -651,7 +652,7 @@ public class WaiterAgent extends Agent {
 	}
 
 	/** Hack to set the cook for the waiter */
-	public void setCook(CookAgent cook) {
+	public void setCook(Cook cook) {
 		this.cook = cook;
 	}
 
@@ -661,7 +662,7 @@ public class WaiterAgent extends Agent {
 	}
 	
 	/** Hack to set the cashier for the waiter */
-	public void setCashier(CashierAgent c) {
+	public void setCashier(Cashier c) {
 		this.cashier = c;
 	}
 

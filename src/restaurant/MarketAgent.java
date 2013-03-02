@@ -1,13 +1,14 @@
 package restaurant;
 
 import java.util.ArrayList;
+import restaurant.interfaces.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import agent.Agent;
 
-public class MarketAgent extends Agent {
+public class MarketAgent extends Agent implements Market {
 	
 	// *** DATA ***
 	//
@@ -15,13 +16,13 @@ public class MarketAgent extends Agent {
 		public int amount;
 		public String type;
 		public OrderState status; //default = received
-		public CashierAgent csr;
-		public CookAgent cook;
+		public Cashier csr;
+		public Cook cook;
 		double grandTotal;
 		double amountReceived;
 		
 		//Order constructor
-		public Order(String t, int a, CashierAgent c, CookAgent ck) {
+		public Order(String t, int a, Cashier c, Cook ck) {
 			type = t;
 			amount = a;
 			csr = c;
@@ -65,7 +66,7 @@ public class MarketAgent extends Agent {
 	// *** MESSAGES ***
 	//
 	/** Message from Cashier with payment for Bill */
-	public void msgPayMarketBill(CashierAgent c, String item, double payment) {
+	public void msgPayMarketBill(Cashier c, String item, double payment) {
 		//for order o such that o.bill = b
 		for (Order o: orders) {
 			if (o.type == item && 
@@ -80,7 +81,7 @@ public class MarketAgent extends Agent {
 	}
 	
 	/** Message from Cook with new order */
-	public void msgOrderFood(String type, int amount, CashierAgent csr, CookAgent cook) {
+	public void msgOrderFood(String type, int amount, Cashier csr, Cook cook) {
 		orders.add(new Order(type,amount, csr, cook)); //create new received order
 		stateChanged();
 	}
