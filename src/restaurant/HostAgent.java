@@ -243,7 +243,7 @@ public class HostAgent extends Agent {
 					nextWaiter = (nextWaiter + 1) % waiters.size();
 				}
 			}
-			print("picking waiter number:" + nextWaiter);
+			print("picking waiter number: " + nextWaiter);
 			// Then runs through the tables and finds the first unoccupied
 			// table and tells the waiter to sit the first customer at that
 			// table
@@ -251,8 +251,10 @@ public class HostAgent extends Agent {
 
 				if (!tables[i].occupied) {
 					synchronized (waitList) {
-						tellWaiterToSitCustomerAtTable(waiters.get(nextWaiter),
-								waitList.get(0), i);
+						synchronized(waiters) {
+							tellWaiterToSitCustomerAtTable(waiters.get(nextWaiter),
+									waitList.get(0), i);
+						}
 					}
 					return true;
 				}

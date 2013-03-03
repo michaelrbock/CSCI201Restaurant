@@ -2,6 +2,8 @@ package restaurant;
 
 import java.util.ArrayList;
 import restaurant.interfaces.*;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,7 @@ public class MarketAgent extends Agent implements Market {
 		received, billed, completed, unfulfilled
 	};
 	
-	private List<Order> orders = new ArrayList<Order>();
+	private List<Order> orders = Collections.synchronizedList(new ArrayList<Order>());
 	
 	//Map food type (string) to amount in stock
 	private Map<String, Integer> inventory = new HashMap<String, Integer>(4);
@@ -68,15 +70,22 @@ public class MarketAgent extends Agent implements Market {
 	/** Message from Cashier with payment for Bill */
 	public void msgPayMarketBill(Cashier c, String item, double payment) {
 		//for order o such that o.bill = b
-		for (Order o: orders) {
-			if (o.type == item && 
-				o.grandTotal == payment &&
-				o.csr == c)
-			{
-				o.amountReceived = payment;
-				o.status = OrderState.completed;
-				stateChanged();
+		Order temp = null;
+		synchronized(orders) {
+			for (Order o: orders) {
+				if (o.type == item && 
+					o.grandTotal == payment &&
+					o.csr == c)
+				{
+					temp = o;
+					break;
+				}
 			}
+		}
+		if (temp != null) {
+			temp.amountReceived = payment;
+			temp.status = OrderState.completed;
+			stateChanged();
 		}
 	}
 	
@@ -92,26 +101,47 @@ public class MarketAgent extends Agent implements Market {
 	protected boolean pickAndExecuteAnAction() {
 		//if there exists Order o such that o.status=received and inventory has enough 
 		//to fulfill the order
-		for (Order o: orders) {
-			if (o.status == OrderState.received) {
-				if (inventory.get(o.type) >= o.amount) {
-					sendBill(o);
+		Order tempSend = null;
+		Order tempDecline = null;
+		synchronized(orders) {
+			for (Order o: orders) {
+				if (o.status == OrderState.received) {
+					if (inventory.get(o.type) >= o.amount) {
+						tempSend = o;
+					}
+					//else if there exists Order o such that o.status=received and 
+					//there is not enough inventory
+					else if (inventory.get(o.type) < o.amount) {
+						tempDecline = o;
+					}
+					break;
 				}
-				//else if there exists Order o such that o.status=received and 
-				//there is not enough inventory
-				else if (inventory.get(o.type) < o.amount) {
-					declineOrder(o);
-				}
-				return true;
 			}
 		}
+		if (tempSend != null) {
+			sendBill(tempSend);
+			return true;
+		}
+		else if (tempDecline != null) {
+			declineOrder(tempDecline);
+			return true;
+		}
+		
 		//if there exists Order o such that o.status=billed
-		for (Order o: orders) {
-			if (o.status == OrderState.billed) {
-				sendOrder(o);
-				return true;
+		Order temp = null;
+		synchronized(orders) {
+			for (Order o: orders) {
+				if (o.status == OrderState.billed) {
+					temp = o;
+					break;
+				}
 			}
 		}
+		if (temp != null) {
+			sendOrder(temp);
+			return true;
+		}
+		
 		return false;
 	}
 

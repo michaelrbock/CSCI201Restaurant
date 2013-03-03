@@ -73,7 +73,7 @@ public class WaiterAgent extends Agent implements Waiter {
 	private Menu menu;
 
 	// All the customers that this waiter is serving
-	private List<MyCustomer> customers = new ArrayList<MyCustomer>();
+	private List<MyCustomer> customers = Collections.synchronizedList(new ArrayList<MyCustomer>());
 
 	private HostAgent host;
 	private Cook cook;
@@ -138,14 +138,22 @@ public class WaiterAgent extends Agent implements Waiter {
 	 */
 	public void msgImReadyToOrder(Customer customer) {
 		// print("received msgImReadyToOrder from:"+customer);
-		for (int i = 0; i < customers.size(); i++) {
-			// if(customers.get(i).cmr.equals(customer)){
-			if (customers.get(i).cmr == customer) {
-				customers.get(i).state = CustomerState.READY_TO_ORDER;
-				stateChanged();
-				return;
+		MyCustomer temp = null;
+		synchronized(customers) {
+			for (int i = 0; i < customers.size(); i++) {
+				// if(customers.get(i).cmr.equals(customer)){
+				if (customers.get(i).cmr == customer) {
+					temp = customers.get(i);
+					break;
+				}
 			}
 		}
+		if (temp != null) {
+			temp.state = CustomerState.READY_TO_ORDER;
+			stateChanged();
+			return;
+		}
+		
 		System.out
 				.println("msgImReadyToOrder in WaiterAgent, didn't find him?");
 	}
@@ -159,13 +167,20 @@ public class WaiterAgent extends Agent implements Waiter {
 	 *            the food item that the customer chose
 	 */
 	public void msgHereIsMyChoice(Customer customer, String choice) {
-		for (MyCustomer c : customers) {
-			if (c.cmr.equals(customer)) {
-				c.choice = choice;
-				c.state = CustomerState.ORDER_PENDING;
-				stateChanged();
-				return;
+		MyCustomer temp = null;
+		synchronized(customers) {
+			for (MyCustomer c : customers) {
+				if (c.cmr.equals(customer)) {
+					temp = c;
+					break;
+				}
 			}
+		}
+		if (temp != null) {
+			temp.choice = choice;
+			temp.state = CustomerState.ORDER_PENDING;
+			stateChanged();
+			return;
 		}
 	}
 
@@ -178,13 +193,20 @@ public class WaiterAgent extends Agent implements Waiter {
 	 *            is the guiFood object
 	 */
 	public void msgOrderIsReady(int tableNum, Food f) {
-		for (MyCustomer c : customers) {
-			if (c.tableNum == tableNum) {
-				c.state = CustomerState.ORDER_READY;
-				c.food = f; // so that later we can remove it from the table.
-				stateChanged();
-				return;
+		MyCustomer temp = null;
+		synchronized(customers) {
+			for (MyCustomer c : customers) {
+				if (c.tableNum == tableNum) {
+					temp = c;
+					break;
+				}
 			}
+		}
+		if (temp != null) {
+			temp.state = CustomerState.ORDER_READY;
+			temp.food = f; // so that later we can remove it from the table.
+			stateChanged();
+			return;
 		}
 	}
 
@@ -195,47 +217,73 @@ public class WaiterAgent extends Agent implements Waiter {
 	 *            customer who is leaving the restaurant.
 	 */
 	public void msgDoneEating(Customer customer) {
-		for (MyCustomer c : customers) {
-			if (c.cmr.equals(customer)) {
-				c.state = CustomerState.IS_DONE_EATING;
-				stateChanged();
-				return;
+		MyCustomer temp = null;
+		synchronized(customers) {
+			for (MyCustomer c : customers) {
+				if (c.cmr.equals(customer)) {
+					temp = c;
+					break;
+				}
 			}
+		}
+		if (temp != null) {
+			temp.state = CustomerState.IS_DONE_EATING;
+			stateChanged();
+			return;
 		}
 	}
 	
 	public void msgDoneEatingAndLeaving(Customer customer) {
-		for (MyCustomer c : customers) {
-			if (c.cmr.equals(customer)) {
-				c.state = CustomerState.IS_COMPLETELY_DONE;
-				stateChanged();
-				return;
+		MyCustomer temp = null;
+		synchronized(customers) {
+			for (MyCustomer c : customers) {
+				if (c.cmr.equals(customer)) {
+					temp = c;
+					break;
+				}
 			}
+		}
+		if (temp != null) {
+			temp.state = CustomerState.IS_COMPLETELY_DONE;
+			stateChanged();
+			return;
 		}
 	}
 	
 	/** Message from Cook that customer's choice is out */
 	public void msgOutOfChoice(String choice, int tableNum) {
 		//find customer and set state that his choice is out
-		for (MyCustomer myCustomer: customers) {
-			if (myCustomer.tableNum == tableNum) {
-				myCustomer.choiceIsOut = true;
-				stateChanged();
-				break;
+		MyCustomer temp = null;
+		synchronized(customers) {
+			for (MyCustomer myCustomer: customers) {
+				if (myCustomer.tableNum == tableNum) {
+					temp = myCustomer;
+					break;
+				}
 			}
+		}
+		if (temp != null) {
+			temp.choiceIsOut = true;
+			stateChanged();
 		}
 	}
 	
 	/** Message sent from cashier with bill for customer */
 	public void msgHereIsBill(Bill b) {
 		//add bill to MyCustomer object for correct customer
-		for (MyCustomer myCustomer: customers) {
-			//find customer associated with bill
-			if (myCustomer.cmr == b.cmr) {
-				myCustomer.bill = b;
-				stateChanged();
-				return;
+		MyCustomer temp = null;
+		synchronized(customers) {
+			for (MyCustomer myCustomer: customers) {
+				//find customer associated with bill
+				if (myCustomer.cmr == b.cmr) {
+					temp = myCustomer;
+				}
 			}
+		}
+		if (temp != null) {
+			temp.bill = b;
+			stateChanged();
+			return;
 		}
 	}
 	
@@ -287,60 +335,108 @@ public class WaiterAgent extends Agent implements Waiter {
 		if (!customers.isEmpty()) {
 			// System.out.println("in scheduler, customers not empty:");
 			// Gives food to customer if the order is ready
-			for (MyCustomer c : customers) {
-				if (c.state == CustomerState.ORDER_READY) {
-					giveFoodToCustomer(c);
-					return true;
-				}
-			}
-			
-			// Clears the table if the customer has left
-			for (MyCustomer c : customers) {
-				if (c.state == CustomerState.IS_COMPLETELY_DONE) {
-					clearTable(c);
-					return true;
-				}
-			}
-
-			// Seats the customer if they need it
-			for (MyCustomer c : customers) {
-				if (c.state == CustomerState.NEED_SEATED) {
-					seatCustomer(c);
-					return true;
-				}
-			}
-			
-			// Gives customer bill if done and need it
-			for (MyCustomer c: customers) {
-				if (c.state == CustomerState.IS_DONE_EATING && 
-				    c.bill != null) 
-				{
-					sendBillToCustomer(c);
-					return true;
-				}
-				else if (c.state == CustomerState.IS_DONE_EATING) {
-					if (!c.askedForBill) {
-						getBillFromCashierFor(c);
-						return true;
+			MyCustomer temp = null;
+			synchronized(customers) {
+				for (MyCustomer c : customers) {
+					if (c.state == CustomerState.ORDER_READY) {
+						temp = c;
+						break;
 					}
 				}
 			}
+			if (temp != null) {
+				giveFoodToCustomer(temp);
+				return true;
+			}
+			
+			// Clears the table if the customer has left
+			temp = null;
+			synchronized(customers) {
+				for (MyCustomer c : customers) {
+					if (c.state == CustomerState.IS_COMPLETELY_DONE) {
+						temp = c;
+						break;
+					}
+				}
+			}
+			if (temp != null) {
+				clearTable(temp);
+				return true;
+			}
+
+			// Seats the customer if they need it
+			temp = null;
+			synchronized(customers) {
+				for (MyCustomer c : customers) {
+					if (c.state == CustomerState.NEED_SEATED) {
+						temp = c;
+						break;
+					}
+				}
+			}
+			if (temp != null) {
+				seatCustomer(temp);
+				return true;
+			}
+			temp = null;
+			
+			// Gives customer bill if done and need it
+			MyCustomer tempSend = null;
+			MyCustomer tempGet = null;
+			synchronized(customers) {
+				for (MyCustomer c: customers) {
+					if (c.state == CustomerState.IS_DONE_EATING && 
+						c.bill != null) 
+					{
+						tempSend = c;
+						break;
+					}
+					else if (c.state == CustomerState.IS_DONE_EATING) {
+						if (!c.askedForBill) {
+							tempGet = c;
+							break;
+						}
+					}
+				}
+			}
+			if (tempSend != null) {
+				sendBillToCustomer(tempSend);
+				return true;
+			}
+			else if (tempGet != null) {
+				getBillFromCashierFor(tempGet);
+				return true;
+			}
 
 			// Gives all pending orders to the cook
-			for (MyCustomer c : customers) {
-				if (c.state == CustomerState.ORDER_PENDING) {
-					giveOrderToCook(c);
-					return true;
+			temp = null;
+			synchronized(customers) {
+				for (MyCustomer c : customers) {
+					if (c.state == CustomerState.ORDER_PENDING) {
+						temp = c;
+						break;
+					}
 				}
+			}
+			if (temp != null) {
+				giveOrderToCook(temp);
+				return true;
 			}
 
 			// Takes new orders for customers that are ready
-			for (MyCustomer c : customers) {
-				// print("testing for ready to order"+c.state);
-				if (c.state == CustomerState.READY_TO_ORDER) {
-					takeOrder(c);
-					return true;
+			temp = null;
+			synchronized(customers) {
+				for (MyCustomer c : customers) {
+					// print("testing for ready to order"+c.state);
+					if (c.state == CustomerState.READY_TO_ORDER) {
+						temp = c;
+						break;
+					}
 				}
+			}
+			if (temp != null) {
+				takeOrder(temp);
+				return true;
 			}
 			
 			//Gives bill to customers that are done eating!

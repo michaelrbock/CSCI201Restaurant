@@ -44,7 +44,7 @@ public class CustomerAgent extends Agent implements Customer {
 		doneEating, gotBill, gotReceipt, mustWork, doneWorking
 	};
 
-	List<AgentEvent> events = new ArrayList<AgentEvent>();
+	List<AgentEvent> events = Collections.synchronizedList(new ArrayList<AgentEvent>());
 	
 	//customer begins with between 0 and 30 (exclusive) dollars in cash
 	private double cash = (double)rand.nextInt(30);
