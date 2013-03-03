@@ -3,6 +3,7 @@ package restaurant;
 import agent.Agent;
 import restaurant.interfaces.*;
 import java.util.*;
+
 import restaurant.MarketAgent;
 import restaurant.WaiterAgent.CustomerState;
 import restaurant.layoutGUI.*;
@@ -16,8 +17,8 @@ import java.awt.Color;
 public class CookAgent extends Agent implements Cook {
 
 	// List of all the orders and inventory of food items
-	private List<Order> orders = new ArrayList<Order>();
-	private Map<String, FoodData> inventory = new HashMap<String, FoodData>();
+	private List<Order> orders = Collections.synchronizedList(new ArrayList<Order>());
+	private Map<String, FoodData> inventory = Collections.synchronizedMap(new HashMap<String, FoodData>());
 
 	public enum OrderStatus {
 		pending, cooking, done
@@ -177,7 +178,9 @@ public class CookAgent extends Agent implements Cook {
 		}
 		//add received food to inventory
 		else {
-			inventory.get(foodType).addToInventory(amount);
+			synchronized(inventory) {
+				inventory.get(foodType).addToInventory(amount);
+			}
 		}
 		marketOrderIsPlaced = false;
 		stateChanged();
@@ -188,28 +191,51 @@ public class CookAgent extends Agent implements Cook {
 	/** Scheduler. Determine what action is called for, and do it. */
 	protected boolean pickAndExecuteAnAction() {
 		//if there exists food in inventory such that the amount is 0, order more
-		for (FoodData foodData : inventory.values()) {
-			//debug: System.out.println(foodData.amount);
-			if (foodData.amount == 0 && !marketOrderIsPlaced) 
-			{
-				int randomNum = (rand.nextInt(5) + 1);
-				orderMoreFromMarket(foodData.type, randomNum); //order ten more
-				return true;
+		FoodData foodTemp = null;
+		synchronized(inventory) {
+			for (FoodData foodData : inventory.values()) {
+				//debug: System.out.println(foodData.amount);
+				if (foodData.amount == 0 && !marketOrderIsPlaced) 
+				{
+					foodTemp = foodData;
+					break;
+				}
 			}
 		}
+		if (foodTemp != null) {
+			int randomNum = (rand.nextInt(5) + 1);
+			orderMoreFromMarket(foodTemp.type, randomNum); //order 1-5 more
+			return true;
+		}
+		
 		// If there exists an order o whose status is done, place o.
-		for (Order o : orders) {
-			if (o.status == OrderStatus.done) {
-				placeOrder(o);
-				return true;
+		Order temp = null;
+		synchronized(orders) {
+			for (Order o : orders) {
+				if (o.status == OrderStatus.done) {
+					temp = o;
+					break;
+				}
 			}
 		}
+		if (temp != null) {
+			placeOrder(temp);
+			return true;
+		}
+		
 		// If there exists an order o whose status is pending, cook o.
-		for (Order o : orders) {
-			if (o.status == OrderStatus.pending) {
-				cookOrder(o);
-				return true;
+		temp = null;
+		synchronized(orders) {
+			for (Order o : orders) {
+				if (o.status == OrderStatus.pending) {
+					temp = o;
+					break;
+				}
 			}
+		}
+		if (temp != null) {
+			cookOrder(temp);
+			return true;
 		}
 
 		// we have tried all our rules (in this case only one) and found

@@ -273,15 +273,15 @@ public class CustomerAgent extends Agent implements Customer {
 	private void decideToWaitOrLeave() {
 		int choice = rand.nextInt(100);
 		choice = choice % 2;
-		//leave
+		//stay and wait
 		if (choice == 0) {
-			host.msgThatIsTooLongIAmLeaving(this);
+			host.msgIWillWait(this);
 			state = AgentState.WaitingInRestaurant;
 			System.out.println(this+": I will wait");
 		}
-		//stay and wait
+		//leave
 		else if (choice == 1) {
-			host.msgIWillWait(this);
+			host.msgThatIsTooLongIAmLeaving(this);
 			isHungry = false;
 			bill = null;
 			hoursToWork = 0;

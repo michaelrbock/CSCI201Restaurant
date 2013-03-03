@@ -72,12 +72,10 @@ public class HostAgent extends Agent {
 	};
 	
 	// List of all the customers that need a table
-	private List<MyCustomer> waitList = Collections
-			.synchronizedList(new ArrayList<MyCustomer>());
+	private List<MyCustomer> waitList = Collections.synchronizedList(new ArrayList<MyCustomer>());
 
 	// List of all waiter that exist.
-	private List<MyWaiter> waiters = Collections
-			.synchronizedList(new ArrayList<MyWaiter>());
+	private List<MyWaiter> waiters = Collections.synchronizedList(new ArrayList<MyWaiter>());
 	private int nextWaiter = 0; // The next waiter that needs a customer
 
 	// List of all the tables

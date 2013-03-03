@@ -96,32 +96,63 @@ public class CashierAgent extends Agent implements Cashier {
 		//debug: System.out.println("In cashier scheduler");
 				
 		//if there exists Bill b in customerBills such that b.status=unpaidAndNotSent
-		for (Bill b: customerBills) {
-			if (b.status == BillState.unpaidAndNotSent) {
-				sendBillToWaiter(b);
-				return true;
+		Bill temp = null;
+		synchronized(customerBills) {
+			for (Bill b: customerBills) {
+				if (b.status == BillState.unpaidAndNotSent) {
+					temp = b;
+					break;
+				}
 			}
 		}
+		if (temp != null) {
+			sendBillToWaiter(temp);
+			return true;
+		}
+		
 		//if there exists Bill b in customerBills such that b.status=paidInFull
-		for (Bill b: customerBills) {
-			if (b.status == BillState.paidInFull) {
-				sendReceipt(b);
-				return true;
+		temp = null;
+		synchronized(customerBills) {
+			for (Bill b: customerBills) {
+				if (b.status == BillState.paidInFull) {
+					temp = b;
+					break;
+				}
 			}
 		}
+		if (temp != null) {
+			sendReceipt(temp);
+			return true;
+		}
+		
 		//if there exists Bill b in customerBills such that b.status=underPaid
-		for (Bill b: customerBills) {
-			if (b.status == BillState.underPaid) {
-				assignCustomerToWork(b);
-				return true;
+		temp = null;
+		synchronized(customerBills) {
+			for (Bill b: customerBills) {
+				if (b.status == BillState.underPaid) {
+					temp = b;
+					break;
+				}
 			}
 		}
+		if (temp != null) {
+			assignCustomerToWork(temp);
+			return true;
+		}
+		
 		//if there exists Bill b in marketBills such that b.status = unpaid
-		for (Bill b: marketBills) {
-			if (b.status == BillState.unpaidAndSent) {
-				payMarketBill(b);
-				return true;
+		temp = null;
+		synchronized(marketBills) {
+			for (Bill b: marketBills) {
+				if (b.status == BillState.unpaidAndSent) {
+					temp = b;
+					break;
+				}
 			}
+		}
+		if (temp != null) {
+			payMarketBill(temp);
+			return true;
 		}
 		
 		return false;
