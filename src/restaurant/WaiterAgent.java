@@ -6,6 +6,8 @@ import restaurant.gui.RestaurantGui;
 import restaurant.layoutGUI.*;
 import restaurant.Bill.*;
 import agent.Agent;
+
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import astar.*;
@@ -78,6 +80,10 @@ public class WaiterAgent extends Agent implements Waiter {
 	private HostAgent host;
 	private Cook cook;
 	private Cashier cashier;
+	
+	//Access to the revolving stand if it is a shared data waiter
+	boolean useRevolvingStand;
+	protected List<Order> revolvingStand; 
 
 	// Animation Variables
 	AStarTraversal aStar;
@@ -95,8 +101,8 @@ public class WaiterAgent extends Agent implements Waiter {
 	 * @param gui
 	 *            reference to the gui
 	 */
-	public WaiterAgent(String name, AStarTraversal aStar,
-			Restaurant restaurant, Table[] tables) {
+	public WaiterAgent(String name, AStarTraversal aStar, 
+			Restaurant restaurant, Table[] tables, List<Order> revStand) {
 		super();
 
 		this.name = name;
@@ -111,6 +117,14 @@ public class WaiterAgent extends Agent implements Waiter {
 		currentPosition.moveInto(aStar.getGrid());
 		originalPosition = currentPosition;// save this for moving into
 		this.tables = tables;
+		
+		if (revStand != null) {
+			this.useRevolvingStand = true;
+			this.revolvingStand = revStand;
+		}
+		else {
+			this.useRevolvingStand = false;
+		}
 	}
 
 	// *** MESSAGES ***
@@ -506,12 +520,24 @@ public class WaiterAgent extends Agent implements Waiter {
 		// order to give him an order. We assume some sort of electronic
 		// method implemented as our message to the cook. So there is no
 		// animation analog, and hence no DoXXX routine is needed.
-		print("Giving " + customer.cmr + "'s choice of " + customer.choice
-				+ " to cook");
-
-		customer.state = CustomerState.NO_ACTION;
-		cook.msgHereIsAnOrder(this, customer.tableNum, customer.choice);
-		stateChanged();
+		if (!useRevolvingStand) { //normal waiter
+			print("Giving " + customer.cmr + "'s choice of " + customer.choice
+					+ " to cook");
+	
+			customer.state = CustomerState.NO_ACTION;
+			cook.msgHereIsAnOrder(this, customer.tableNum, customer.choice);
+			stateChanged();
+		}
+		else { //shared data waiter
+			print("Putting " + customer.cmr + "'s choice of " + customer.choice
+					+ " on revolving stand");
+			
+			customer.state = CustomerState.NO_ACTION;
+			//add order directly to shared revolving stand
+			revolvingStand.add(new Order(this, customer.tableNum, customer.choice));
+			//cook.addToRevolvingStand(this, customer.tableNum, customer.choice);
+			stateChanged();
+		}
 
 		// Here's a little animation hack. We put the first two
 		// character of the food name affixed with a ? on the table.
@@ -761,6 +787,12 @@ public class WaiterAgent extends Agent implements Waiter {
 	public void setCashier(Cashier c) {
 		this.cashier = c;
 	}
+	
+	/** Hack to set the revolving stand from cook
+	public void setRevolvingStand(List<Order> rs) {
+		
+	}
+	*/
 
 	/** @return true if the waiter is on break, false otherwise */
 	public boolean isOnBreak() {

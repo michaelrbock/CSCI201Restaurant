@@ -8,6 +8,7 @@ import java.util.concurrent.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Random;
 import java.util.Vector;
 
 /** Panel in frame that contains all the restaurant information,
@@ -29,6 +30,9 @@ public class RestaurantPanel extends JPanel {
 
 	Restaurant restaurant =  new Restaurant("Welcome to csci201's Restaurant",
 			gridX, gridY, grid, tables);
+	
+	//random int generator
+	Random rand = new Random();
 
 	//Host, cook, waiters and customers, and markets
 	private Vector<MarketAgent> markets = new Vector<MarketAgent>();
@@ -177,7 +181,14 @@ public class RestaurantPanel extends JPanel {
 			c.setHungry();
 		} else if(type.equals("Waiters")){
 			AStarTraversal aStarTraversal = new AStarTraversal(grid);
-			WaiterAgent w = new WaiterAgent(name, aStarTraversal, restaurant, tables);
+			//split 50-50 between normal and shared data waiters
+			WaiterAgent w;
+			if (rand.nextInt(2) % 2 == 0) {
+				w = new WaiterAgent(name, aStarTraversal, restaurant, tables, null);
+			}
+			else {
+				w = new WaiterAgent(name+"(shared data)", aStarTraversal, restaurant, tables, cook.revolvingStand);
+			}
 			w.setHost(host);
 			w.setCook(cook);
 			w.setCashier(cashier);

@@ -1,3 +1,15 @@
+v4.2:
+-------
+- All data that needs to be is now synchronized
+- Waiters are randomly (with a 50% chance) either normal waiters or shared-data waiters (i.e. use the revolving stand for orders)
+    - Waiters that use shared-data are marked as such in their name (e.g. "w2(shared data)")
+    - You can see those waiters place orders onto the stand and the cook take them off
+- Run restaurant.test.FullCashierTest to run through the Cashier's tests
+- You can see that multi-step ordering has been implemented between the waiters and customers
+
+
+v4.1:
+--------
 Scenarios mostly run by themselves (randomly).
 
 For instance:
@@ -13,3 +25,4 @@ For instance:
 
 Exceptions:
 - Press the "On Break?" button on the GUI for the waiter to see break scenario between waiter and host.
+

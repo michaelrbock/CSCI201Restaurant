@@ -15,6 +15,11 @@ import java.awt.Color;
  * cooking them. Interacts with waiters only.
  */
 public class CookAgent extends Agent implements Cook {
+	
+	// *** DATA ****
+	
+	//The Shared order "revolving stand" for use by certain waiters
+	public List<Order> revolvingStand = Collections.synchronizedList(new ArrayList<Order>());
 
 	// List of all the orders and inventory of food items
 	private List<Order> orders = Collections.synchronizedList(new ArrayList<Order>());
@@ -85,11 +90,11 @@ public class CookAgent extends Agent implements Cook {
 		}
 	}
 
-	/**
+	/*
 	 * Private class to store order information. Contains the waiter, table
 	 * number, food item, cooktime and status.
-	 */
-	private class Order {
+	 *
+	public class Order {
 		public Waiter waiter;
 		public int tableNum;
 		public String choice;
@@ -105,7 +110,7 @@ public class CookAgent extends Agent implements Cook {
 		 *            identification number for the table
 		 * @param choice
 		 *            type of food to be cooked
-		 */
+		 *
 		public Order(Waiter waiter, int tableNum, String choice) {
 			this.waiter = waiter;
 			this.choice = choice;
@@ -113,11 +118,12 @@ public class CookAgent extends Agent implements Cook {
 			this.status = OrderStatus.pending;
 		}
 
-		/** Represents the object as a string */
+		/** Represents the object as a string *
 		public String toString() {
 			return choice + " for " + waiter;
 		}
 	}
+	*/
 	
 	/**
 	 * Private class to hold information for each market. Contains a reference
@@ -237,6 +243,13 @@ public class CookAgent extends Agent implements Cook {
 			cookOrder(temp);
 			return true;
 		}
+		
+		// If there exists an order o on the revolving stand, move to orders and remove from stand
+		if (!revolvingStand.isEmpty()) {
+			synchronized(revolvingStand) {
+				moveToOrders(revolvingStand.remove(0));
+			}
+		}
 
 		// we have tried all our rules (in this case only one) and found
 		// nothing to do. So return false to main loop of abstract agent
@@ -283,6 +296,13 @@ public class CookAgent extends Agent implements Cook {
 		System.out.println(this+": ordered "+amount+" of "+foodType+" from random market");
 		markets.get(randomNum).mkt.msgOrderFood(foodType, amount, csr, this);
 		marketOrderIsPlaced = true;
+	}
+	
+	/** Take order off of revolving stand */
+	private void moveToOrders(Order o) {
+		System.out.println(this+": taking order of "+o.choice+" for table "+o.tableNum+" off of revolving stand");
+		orders.add(new Order(o));
+		stateChanged();
 	}
 
 	// *** EXTRA -- all the simulation routines***
