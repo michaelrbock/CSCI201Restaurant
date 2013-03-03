@@ -30,7 +30,8 @@ public class RestaurantPanel extends JPanel {
 	Restaurant restaurant =  new Restaurant("Welcome to csci201's Restaurant",
 			gridX, gridY, grid, tables);
 
-	//Host, cook, waiters and customers
+	//Host, cook, waiters and customers, and markets
+	private Vector<MarketAgent> markets = new Vector<MarketAgent>();
 	private HostAgent host = new HostAgent("Prof. W.", nTables);
 	private CookAgent cook = new CookAgent("W. Puck", restaurant);
 	private CashierAgent cashier = new CashierAgent();
@@ -96,10 +97,22 @@ public class RestaurantPanel extends JPanel {
 		}
 		restaurant.setAnimDelay(500);
 		restaurant.displayRestaurant();
-
-		host.startThread();
-		cook.startThread();
+		
+		//start cashier and host
 		cashier.startThread();
+		host.startThread();
+		
+		//create markets and start threads
+		for (int i=0; i<10; i++) {
+			markets.add(new MarketAgent(Integer.toString(i+1)));
+			markets.get(i).startThread();
+		}
+		
+		//add markets and cashier to cook, then start
+		cook.setCashier(cashier);
+		cook.setMarkets(markets);
+		cook.startThread();
+		
 
 		setLayout(new GridLayout(1,2, 20,20));
 		group.setLayout(new GridLayout(1,2, 10,10));

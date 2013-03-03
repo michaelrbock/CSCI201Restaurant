@@ -107,8 +107,10 @@ public class MarketAgent extends Agent implements Market {
 		}
 		//if there exists Order o such that o.status=billed
 		for (Order o: orders) {
-			sendOrder(o);
-			return true;
+			if (o.status == OrderState.billed) {
+				sendOrder(o);
+				return true;
+			}
 		}
 		return false;
 	}

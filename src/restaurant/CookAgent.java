@@ -3,7 +3,7 @@ package restaurant;
 import agent.Agent;
 import restaurant.interfaces.*;
 import java.util.*;
-
+import restaurant.MarketAgent;
 import restaurant.WaiterAgent.CustomerState;
 import restaurant.layoutGUI.*;
 
@@ -56,10 +56,6 @@ public class CookAgent extends Agent implements Cook {
 		inventory.put("Pizza", new FoodData("Pizza",     3, 2));
 		inventory.put("Salad", new FoodData("Salad",     2, 2));
 		
-		//Create 10 Markets to order from
-		for (int i=0; i<10; i++) {
-			markets.add(new MyMarket(new MarketAgent("m"+(i+1))));
-		}
 		marketOrderIsPlaced = false;
 	}
 
@@ -242,6 +238,10 @@ public class CookAgent extends Agent implements Cook {
 	
 	/** Order more food from market */
 	private void orderMoreFromMarket(String foodType, int amount) {
+		//check that markets have been set
+		if (markets.size()==0) {
+			return;
+		}
 		//find market to order from that has food stocked
 		for (MyMarket market: markets) {
 			//if market is not out of that type of food
@@ -273,6 +273,13 @@ public class CookAgent extends Agent implements Cook {
 	/** establish connection to cashier agent. */
 	public void setCashier(Cashier c) {
 		this.csr = c;
+	}
+	
+	/** establish connection to market agents */
+	public void setMarkets(Vector<MarketAgent> ms) {
+		for (MarketAgent m: ms) {
+			this.markets.add(new MyMarket(m));
+		}
 	}
 
 	private void DoCooking(final Order order) {

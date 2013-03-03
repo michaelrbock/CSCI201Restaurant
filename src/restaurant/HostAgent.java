@@ -130,35 +130,53 @@ public class HostAgent extends Agent {
 	
 	/** Message from Waiter asking to take a break */
 	public void msgCanITakeBreak(WaiterAgent w) {
-		for (MyWaiter myWaiter: waiters) {
-			if (myWaiter.wtr == w) {
-				myWaiter.waiterBreakState = WaiterBreakState.wantsBreak;
-				stateChanged();
-				break;
+		MyWaiter myWaiter = null;
+		synchronized(waiters) {
+			for (MyWaiter temp: waiters) {
+				if (temp.wtr == w) {
+					myWaiter = temp;
+					break;
+				}
 			}
 		}
+		if (myWaiter != null) {
+			myWaiter.waiterBreakState = WaiterBreakState.wantsBreak;
+		}
+		stateChanged();
 	}
 	
 	/** Message from Waiter signifying starting break */
 	public void msgGoingOnBreak(WaiterAgent w) {
-		for (MyWaiter myWaiter: waiters) {
-			if (myWaiter.wtr == w) {
-				myWaiter.waiterBreakState = WaiterBreakState.onBreak;
-				stateChanged();
-				break;
+		MyWaiter myWaiter = null;
+		synchronized(waiters) {
+			for (MyWaiter temp: waiters) {
+				if (temp.wtr == w) {
+					myWaiter = temp;
+					break;
+				}
 			}
 		}
+		if (myWaiter != null) {
+			myWaiter.waiterBreakState = WaiterBreakState.onBreak;
+		}
+		stateChanged();
 	}
 	
 	/** Message from Waiter signifying break is over */
 	public void msgGoingOffBreak(WaiterAgent w) {
-		for (MyWaiter myWaiter: waiters) {
-			if (myWaiter.wtr == w) {
-				myWaiter.waiterBreakState = WaiterBreakState.none;
-				stateChanged();
-				break;
+		MyWaiter myWaiter = null;
+		synchronized(waiters) {
+			for (MyWaiter temp: waiters) {
+				if (temp.wtr == w) {
+					myWaiter = temp;
+					break;
+				}
 			}
 		}
+		if (myWaiter != null) {
+			myWaiter.waiterBreakState = WaiterBreakState.none;
+		}
+		stateChanged();
 	}
 	
 	/** Message from customer who does not want to wait if there is long wait */
@@ -294,7 +312,9 @@ public class HostAgent extends Agent {
 				+ (tableNum + 1));
 		waiter.wtr.msgSitCustomerAtTable(myCustomer.cmr, tableNum);
 		tables[tableNum].occupied = true;
-		waitList.remove(myCustomer);
+		synchronized(waitList) {
+			waitList.remove(myCustomer);
+		}
 		nextWaiter = (nextWaiter + 1) % waiters.size();
 		stateChanged();
 	}
@@ -304,7 +324,9 @@ public class HostAgent extends Agent {
 		waiter.wtr.msgTakeBreak();
 		//waiter's break state is not changed to onBreak until message received
 		//for now set state that waiter was told break OK
-		waiter.waiterBreakState = WaiterBreakState.toldOkToBreak;
+		synchronized(waiters) {
+			waiter.waiterBreakState = WaiterBreakState.toldOkToBreak;
+		}
 		System.out.println(this+": told "+waiter.wtr+" he can go on break");
 		stateChanged();
 	}
@@ -313,7 +335,9 @@ public class HostAgent extends Agent {
 	private void tellWaiterToWaitForBreak(MyWaiter waiter) {
 		waiter.wtr.msgNotYet();
 		//change waiter break state to waiting for break
-		waiter.waiterBreakState = WaiterBreakState.needsToWait;
+		synchronized(waiters) {
+			waiter.waiterBreakState = WaiterBreakState.needsToWait;
+		}
 		System.out.println(this+": told "+waiter.wtr+" he needs to wait to take break");
 		stateChanged();
 	}
@@ -323,7 +347,9 @@ public class HostAgent extends Agent {
 		if (!mc.knowsAboutWait) {
 			System.out.println(this+": told "+mc.cmr+" that there is a wait");
 			mc.cmr.msgThereIsWait();
-			mc.knowsAboutWait = true;
+			synchronized(waitList) {
+				mc.knowsAboutWait = true;
+			}
 			stateChanged();
 		}
 	}
@@ -348,13 +374,15 @@ public class HostAgent extends Agent {
 	 *  @return true if there is at least one working waiter
 	 */
 	private boolean isAtLestOneOtherWorkingWaiter(MyWaiter w) {
-		for (MyWaiter myWaiter: waiters) {
-			//skip the passed in waiter
-			if (myWaiter == w) {
-				continue;
-			}
-			if (myWaiter.waiterBreakState != WaiterBreakState.onBreak) {
-				return true;
+		synchronized(waiters) {
+			for (MyWaiter myWaiter: waiters) {
+				//skip the passed in waiter
+				if (myWaiter == w) {
+					continue;
+				}
+				if (myWaiter.waiterBreakState != WaiterBreakState.onBreak) {
+					return true;
+				}
 			}
 		}
 		return false;

@@ -1,6 +1,7 @@
 package restaurant;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import restaurant.Bill.*;
 import restaurant.interfaces.*;
@@ -11,8 +12,8 @@ public class CashierAgent extends Agent implements Cashier {
 	// *** DATA ****
 	//
 	Menu menu = new Menu();
-	private List<Bill> customerBills = new ArrayList<Bill>();
-	private List<Bill> marketBills = new ArrayList<Bill>();
+	private List<Bill> customerBills = Collections.synchronizedList(new ArrayList<Bill>());
+	private List<Bill> marketBills = Collections.synchronizedList(new ArrayList<Bill>());
 
 	public CashierAgent() {
 		super();
@@ -23,24 +24,28 @@ public class CashierAgent extends Agent implements Cashier {
 	/** Message from Customer for payment */
 	public void msgPayment(Customer c, Bill b, double cash) {
 		//for bill in customerBills such that b=bill
-		for (Bill bill: customerBills) {
-			if (bill.grandTotal == b.grandTotal &&
-				bill.cmr == c &&
-				bill.item == b.item) 
-			{
-				bill.amountReceived = cash;
-				if (bill.amountReceived < bill.grandTotal) {
-					bill.status = BillState.underPaid;
-					//calculate hours to work @ $8 per hour (CA min wage)
-					bill.hoursNeeded = (bill.grandTotal-bill.amountReceived) / 8;
-					stateChanged();
+		Bill bill = null;
+		synchronized(customerBills) {
+			for (Bill temp: customerBills) {
+				if (temp.grandTotal == b.grandTotal &&
+					temp.cmr == c &&
+					temp.item == b.item)
+				{
+					bill = temp;
+					break;
 				}
-				else {
-					bill.status = BillState.paidInFull;
-					bill.change = bill.amountReceived - bill.grandTotal;
-					stateChanged();
-				}
-				break;
+			}
+		}
+		if (bill != null) {
+			bill.amountReceived = cash;
+			if (bill.amountReceived < bill.grandTotal) {
+				bill.status = BillState.underPaid;
+				//calculate hours to work @ $8 per hour (CA min wage)
+				bill.hoursNeeded = (bill.grandTotal-bill.amountReceived) / 8;
+			}
+			else {
+				bill.status = BillState.paidInFull;
+				bill.change = bill.amountReceived - bill.grandTotal;
 			}
 		}
 		stateChanged();
@@ -65,17 +70,23 @@ public class CashierAgent extends Agent implements Cashier {
 	public void msgWillWorkFor(Customer c, Bill b, double hours) {
 		//find waiter's bill and update info
 		//for bill in customerBills such that b=bill
-		for (Bill bill: customerBills) {
-			if (bill.grandTotal == b.grandTotal &&
-				bill.cmr == c &&
-				bill.item == b.item) 
-			{
-				bill.hoursNeeded = hours;
-				bill.status = BillState.paidByWork;
-				stateChanged();
-				break;
+		Bill bill = null;
+		synchronized(customerBills) {
+			for (Bill temp: customerBills) {
+				if (temp.grandTotal == b.grandTotal &&
+						temp.cmr == c &&
+						temp.item == b.item) 
+				{
+					bill = temp;
+					break;
+				}
 			}
 		}
+		if (bill != null) {
+			bill.hoursNeeded = hours;
+			bill.status = BillState.paidByWork;
+		}
+		stateChanged();
 	}
 	
 	// *** SCHEDULER ***
@@ -141,7 +152,7 @@ public class CashierAgent extends Agent implements Cashier {
 	
 	/** Pay a market bill after cook orders food and market sends bill */
 	private void payMarketBill(Bill b) {
-		System.out.println(this+": paid $"+b.grandTotal+" bill to"+b.mkt+" for "+b.item);
+		System.out.println(this+": paid $"+b.grandTotal+" bill to "+b.mkt+" for "+b.item);
 		b.mkt.msgPayMarketBill(this, b.item, b.grandTotal);
 		b.status = BillState.paidInFull;
 	}
