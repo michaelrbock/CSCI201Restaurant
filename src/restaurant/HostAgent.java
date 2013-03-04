@@ -310,7 +310,7 @@ public class HostAgent extends Agent {
 			MyCustomer myCustomer, int tableNum) {
 		print("Telling " + waiter.wtr + " to sit " + myCustomer.cmr + " at table "
 				+ (tableNum + 1));
-		waiter.wtr.msgSitCustomerAtTable(myCustomer.cmr, tableNum);
+		waiter.wtr.msgSitCustomerAtTable(myCustomer.cmr, tableNum, myCustomer.cmr.orderingSem);
 		tables[tableNum].occupied = true;
 		synchronized(waitList) {
 			waitList.remove(myCustomer);

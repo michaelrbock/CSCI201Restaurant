@@ -1,5 +1,7 @@
 package restaurant.interfaces;
 
+import java.util.concurrent.Semaphore;
+
 import restaurant.Bill;
 import restaurant.HostAgent;
 
@@ -27,7 +29,7 @@ public interface Waiter {
 	 * @param tableNum
 	 *            identification number for table
 	 */
-	public void msgSitCustomerAtTable(Customer customer, int tableNum);
+	public void msgSitCustomerAtTable(Customer customer, int tableNum, Semaphore s);
 	
 	/**
 	 * Customer sends this when they are ready.

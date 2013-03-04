@@ -12,6 +12,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import astar.*;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 
 /**
  * Restaurant Waiter Agent. Sits customers at assigned tables and takes their
@@ -50,6 +51,7 @@ public class WaiterAgent extends Agent implements Waiter {
 		public boolean askedForBill;
 		public Food food; // gui thing
 		public boolean choiceIsOut; //default false
+		public Semaphore orderingSem; //for multi-step action
 
 		/**
 		 * Constructor for MyCustomer class.
@@ -59,9 +61,10 @@ public class WaiterAgent extends Agent implements Waiter {
 		 * @param num
 		 *            assigned table number
 		 */
-		public MyCustomer(Customer cmr, int num) {
+		public MyCustomer(Customer cmr, int num, Semaphore s) {
 			this.cmr = cmr;
 			tableNum = num;
+			orderingSem = s;
 			state = CustomerState.NO_ACTION;
 			choiceIsOut = false;
 			askedForBill = false;
@@ -137,8 +140,8 @@ public class WaiterAgent extends Agent implements Waiter {
 	 * @param tableNum
 	 *            identification number for table
 	 */
-	public void msgSitCustomerAtTable(Customer customer, int tableNum) {
-		MyCustomer c = new MyCustomer(customer, tableNum);
+	public void msgSitCustomerAtTable(Customer customer, int tableNum, Semaphore s) {
+		MyCustomer c = new MyCustomer(customer, tableNum, s);
 		c.state = CustomerState.NEED_SEATED;
 		customers.add(c);
 		stateChanged();
@@ -449,7 +452,8 @@ public class WaiterAgent extends Agent implements Waiter {
 				}
 			}
 			if (temp != null) {
-				takeOrder(temp);
+				//takeOrder(temp);
+				takeOrderMultiStep(temp);
 				return true;
 			}
 			
@@ -494,6 +498,27 @@ public class WaiterAgent extends Agent implements Waiter {
 		customer.state = CustomerState.NO_ACTION;
 		customer.cmr.msgFollowMeToTable(this, new Menu());
 		stateChanged();
+	}
+	
+	/** Multi-step odering action */
+	private void takeOrderMultiStep(MyCustomer customer) {
+		//Waiter asks customer what he wants.
+		try {
+			customer.orderingSem.acquire();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		takeOrder(customer);
+		customer.orderingSem.release();
+		
+		//Waiter gives the cook the order (as before).
+		try {
+			customer.orderingSem.acquire();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		giveOrderToCook(customer);
+		customer.orderingSem.release();
 	}
 
 	/**

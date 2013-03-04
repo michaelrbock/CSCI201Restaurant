@@ -6,6 +6,7 @@ import restaurant.layoutGUI.*;
 import agent.Agent;
 import restaurant.Bill.*;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.awt.Color;
 
 /**
@@ -17,6 +18,8 @@ public class CustomerAgent extends Agent implements Customer {
 	private String name;
 	private int hungerLevel = 5; // Determines length of meal
 	private RestaurantGui gui;
+	
+	public Semaphore orderingSem = new Semaphore(1,true); //Binary, fair Semaphore
 	
 	// ** Agent connections **
 	private HostAgent host;
@@ -102,7 +105,7 @@ public class CustomerAgent extends Agent implements Customer {
 	public void msgFollowMeToTable(Waiter waiter, Menu menu) {
 		this.menu = menu;
 		this.waiter = waiter;
-		print("Received msgFollowMeToTable from" + waiter);
+		print("Received msgFollowMeToTable from " + waiter);
 		events.add(AgentEvent.beingSeated);
 		stateChanged();
 	}
@@ -199,15 +202,17 @@ public class CustomerAgent extends Agent implements Customer {
 		}
 		if (state == AgentState.SeatedWithMenu) {
 			if (event == AgentEvent.decidedChoice) {
-				callWaiter();
-				state = AgentState.WaiterCalled;
+				
+				multiStepOrdering();
+				
+				//callWaiter(); multi step
 				return true;
+				
 			}
 		}
 		if (state == AgentState.WaiterCalled) {
 			if (event == AgentEvent.waiterToTakeOrder) {
-				orderFood();
-				state = AgentState.WaitingForFood;
+				//orderFood(); multi step
 				return true;
 			}
 		}
@@ -309,10 +314,33 @@ public class CustomerAgent extends Agent implements Customer {
 		}, 3000);// how long to wait before running task
 		stateChanged();
 	}
+	
+	private void multiStepOrdering() {
+		//Customer tells waiter he is ready to order.
+		try {
+			orderingSem.acquire();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		callWaiter();
+		orderingSem.release();
+		//wait for waiter to be ready to take order
+		try { Thread.sleep(1000); } catch(InterruptedException ex) { Thread.currentThread().interrupt(); }
+		
+		//Customer tells him.
+		try {
+			orderingSem.acquire();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		orderFood();
+		orderingSem.release();
+	}
 
 	private void callWaiter() {
 		print("I decided!");
 		waiter.msgImReadyToOrder(this);
+		state = AgentState.WaiterCalled;
 		stateChanged();
 	}
 
@@ -321,6 +349,7 @@ public class CustomerAgent extends Agent implements Customer {
 		String choice = menu.choices[(int) (Math.random() * 4)];
 		print("Ordering the " + choice);
 		waiter.msgHereIsMyChoice(this, choice);
+		state = AgentState.WaitingForFood;
 		stateChanged();
 	}
 

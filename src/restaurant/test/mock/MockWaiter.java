@@ -1,5 +1,7 @@
 package restaurant.test.mock;
 
+import java.util.concurrent.Semaphore;
+
 import restaurant.Bill;
 import restaurant.HostAgent;
 import restaurant.interfaces.Cashier;
@@ -35,9 +37,8 @@ public class MockWaiter extends MockAgent implements Waiter {
 	}
 
 	@Override
-	public void msgSitCustomerAtTable(Customer customer, int tableNum) {
-		// TODO Auto-generated method stub
-		
+	public void msgSitCustomerAtTable(Customer customer, int tableNum, Semaphore s) {
+		//
 	}
 
 	@Override
