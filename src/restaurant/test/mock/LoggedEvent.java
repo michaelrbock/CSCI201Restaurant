@@ -1,7 +1,7 @@
 /**
  * 
  */
-package restaurant.test.Mock;
+package restaurant.test.mock;
 
 import java.text.DateFormat;
 import java.util.Date;

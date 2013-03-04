@@ -13,6 +13,10 @@ import restaurant.interfaces.Waiter;
  * 
  */
 public class MockCook extends MockAgent implements Cook {
+	
+	//Hold real or mock agents to mock up implementation
+	Cashier cashier;
+	Market market;
 
 	public MockCook(String name) {
 		super(name);
@@ -27,17 +31,23 @@ public class MockCook extends MockAgent implements Cook {
 						+ " to cook item " + choice + "."));
 
 	}
+	
+	public void order(String type, int amount) {
+		market.msgOrderFood(type, amount, cashier, this);
+	}
 
 	@Override
 	public void msgFoodDelivery(Market m, String foodType, int amount) {
-		// TODO Auto-generated method stub
-		
+		// must accept this message but mock need not do anything
 	}
 
 	@Override
 	public void setCashier(Cashier c) {
-		// TODO Auto-generated method stub
-		
+		this.cashier = c;
+	}
+	
+	public void setMarket(Market m) {
+		this.market = m;
 	}
 
 }

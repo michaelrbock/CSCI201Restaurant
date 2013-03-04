@@ -4,7 +4,7 @@ v4.2:
 - Waiters are randomly (with a 50% chance) either normal waiters or shared-data waiters (i.e. use the revolving stand for orders)
     - Waiters that use shared-data are marked as such in their name (e.g. "w2(shared data)")
     - You can see those waiters place orders onto the stand and the cook take them off
-- Run restaurant.test.FullCashierTest to run through the Cashier's tests
+- Run restaurant.test.FullCashierTest as a JUnit Test to run through the Cashier's tests
 - You can see that multi-step ordering has been implemented between the waiters and customers
 
 
